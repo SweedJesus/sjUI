@@ -1,0 +1,19 @@
+## Interface: 11200
+## Title: sjUI
+## Notes: 
+## Author: 
+## SavedVariables: 
+## OptionalDeps: 
+
+libs\Ace2\AceLibrary\AceLibrary.lua
+libs\Ace2\AceOO-2.0\AceOO-2.0.lua
+libs\Ace2\AceEvent-2.0\AceEvent-2.0.lua
+libs\Ace2\AceConsole-2.0\AceConsole-2.0.lua
+libs\Ace2\AceAddon-2.0\AceAddon-2.0.lua
+libs\Ace2\AceDB-2.0\AceDB-2.0.lua
+libs\Ace2\AceDebug-2.0\AceDebug-2.0.lua
+libs\Ace2\AceModuleCore-2.0\AceModuleCore-2.0.lua
+
+libs\Bartender2\Alias.lua
+
+sjUI.lua

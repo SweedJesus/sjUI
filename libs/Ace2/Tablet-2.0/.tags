@@ -1,0 +1,108 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+AcquireDetachedFrame	.\Tablet-2.0.lua	/^function AcquireDetachedFrame(self, registration, data, detachedData)$/;"	f
+AcquireFrame	.\Tablet-2.0.lua	/^local function AcquireFrame(self, registration, data, detachedData)$/;"	f
+Category:AddCategory	.\Tablet-2.0.lua	/^	function Category:AddCategory(k1, v1, k2, v2, k3, v3, k4, v4, k5, v5, k6, v6, k7, v7, k8, v8, k9, v9, k10, v10, k11, v11, k12, v12, k13, v13, k14, v14, k15, v15, k16, v16, k17, v17, k18, v18, k19, v19, k20, v20, k21, v21, k22, v22, k23, v23, k24, v24, k25, v25, k26, v26, k27, v27, k28, v28, k29, v29, k30, v30)$/;"	f
+Category:AddLine	.\Tablet-2.0.lua	/^	function Category:AddLine(k1, v1, k2, v2, k3, v3, k4, v4, k5, v5, k6, v6, k7, v7, k8, v8, k9, v9, k10, v10, k11, v11, k12, v12, k13, v13, k14, v14, k15, v15, k16, v16, k17, v17, k18, v18, k19, v19, k20, v20, k21, v21, k22, v22, k23, v23, k24, v24, k25, v25, k26, v26, k27, v27, k28, v28, k29, v29, k30, v30)$/;"	f
+Category:Display	.\Tablet-2.0.lua	/^	function Category:Display(tablet)$/;"	f
+Category:HasChildren	.\Tablet-2.0.lua	/^	function Category:HasChildren()$/;"	f
+Category:del	.\Tablet-2.0.lua	/^	function Category:del()$/;"	f
+Category:new	.\Tablet-2.0.lua	/^	function Category:new(tabletData, info, superCategory)$/;"	f
+CleanCategoryPool	.\Tablet-2.0.lua	/^function CleanCategoryPool(self)$/;"	f
+GetMaxLinesPerScreen	.\Tablet-2.0.lua	/^local function GetMaxLinesPerScreen(self)$/;"	f
+GetProfileInfo	.\Tablet-2.0.lua	/^	function GetProfileInfo()$/;"	f
+Line:Display	.\Tablet-2.0.lua	/^	function Line:Display(tablet)$/;"	f
+Line:del	.\Tablet-2.0.lua	/^	function Line:del()$/;"	f
+Line:new	.\Tablet-2.0.lua	/^	function Line:new(category, info, position)$/;"	f
+NewLine	.\Tablet-2.0.lua	/^local function NewLine(self)$/;"	f
+ReleaseDetachedFrame	.\Tablet-2.0.lua	/^function ReleaseDetachedFrame(self, data, detachedData)$/;"	f
+SlashCmdList["TABLET"] 	.\Tablet-2.0.lua	/^	SlashCmdList["TABLET"] = function(msg)$/;"	f
+StartCheckingAlt	.\Tablet-2.0.lua	/^	function StartCheckingAlt(func)$/;"	f
+StopCheckingAlt	.\Tablet-2.0.lua	/^	function StopCheckingAlt()$/;"	f
+Tablet:AddCategory	.\Tablet-2.0.lua	/^function Tablet:AddCategory(k1, v1, k2, v2, k3, v3, k4, v4, k5, v5, k6, v6, k7, v7, k8, v8, k9, v9, k10, v10, k11, v11, k12, v12, k13, v13, k14, v14, k15, v15, k16, v16, k17, v17, k18, v18, k19, v19, k20, v20, k21, v21, k22, v22, k23, v23, k24, v24, k25, v25, k26, v26, k27, v27, k28, v28, k29, v29, k30, v30)$/;"	f
+Tablet:Attach	.\Tablet-2.0.lua	/^function Tablet:Attach(parent)$/;"	f
+Tablet:Close	.\Tablet-2.0.lua	/^function Tablet:Close(parent)$/;"	f
+Tablet:Detach	.\Tablet-2.0.lua	/^function Tablet:Detach(parent)$/;"	f
+Tablet:GetColor	.\Tablet-2.0.lua	/^function Tablet:GetColor(parent)$/;"	f
+Tablet:GetFontSizePercent	.\Tablet-2.0.lua	/^function Tablet:GetFontSizePercent(parent)$/;"	f
+Tablet:GetHeaderFontObject	.\Tablet-2.0.lua	/^function Tablet:GetHeaderFontObject()$/;"	f
+Tablet:GetHeaderFontSize	.\Tablet-2.0.lua	/^function Tablet:GetHeaderFontSize()$/;"	f
+Tablet:GetNormalFontObject	.\Tablet-2.0.lua	/^function Tablet:GetNormalFontObject()$/;"	f
+Tablet:GetNormalFontSize	.\Tablet-2.0.lua	/^function Tablet:GetNormalFontSize()$/;"	f
+Tablet:GetTransparency	.\Tablet-2.0.lua	/^function Tablet:GetTransparency(parent)$/;"	f
+Tablet:IsAttached	.\Tablet-2.0.lua	/^function Tablet:IsAttached(parent)$/;"	f
+Tablet:IsLocked	.\Tablet-2.0.lua	/^function Tablet:IsLocked(parent)$/;"	f
+Tablet:IsRegistered	.\Tablet-2.0.lua	/^function Tablet:IsRegistered(parent)$/;"	f
+Tablet:ListProfileInfo	.\Tablet-2.0.lua	/^	function Tablet:ListProfileInfo()$/;"	f
+Tablet:Open	.\Tablet-2.0.lua	/^function Tablet:Open(parent)$/;"	f
+Tablet:Refresh	.\Tablet-2.0.lua	/^function Tablet:Refresh(parent)$/;"	f
+Tablet:Register	.\Tablet-2.0.lua	/^function Tablet:Register(parent, k1, v1, k2, v2, k3, v3, k4, v4, k5, v5, k6, v6, k7, v7, k8, v8, k9, v9, k10, v10, k11, v11, k12, v12, k13, v13, k14, v14, k15, v15, k16, v16, k17, v17, k18, v18, k19, v19, k20, v20, k21, v21, k22, v22, k23, v23, k24, v24, k25, v25, k26, v26, k27, v27, k28, v28, k29, v29, k30, v30)$/;"	f
+Tablet:SetColor	.\Tablet-2.0.lua	/^function Tablet:SetColor(parent, r, g, b)$/;"	f
+Tablet:SetFontSizePercent	.\Tablet-2.0.lua	/^function Tablet:SetFontSizePercent(parent, percent)$/;"	f
+Tablet:SetHint	.\Tablet-2.0.lua	/^function Tablet:SetHint(text)$/;"	f
+Tablet:SetTitle	.\Tablet-2.0.lua	/^function Tablet:SetTitle(text)$/;"	f
+Tablet:SetTransparency	.\Tablet-2.0.lua	/^function Tablet:SetTransparency(parent, percent)$/;"	f
+Tablet:ToggleLocked	.\Tablet-2.0.lua	/^function Tablet:ToggleLocked(parent)$/;"	f
+Tablet:Unregister	.\Tablet-2.0.lua	/^function Tablet:Unregister(parent)$/;"	f
+Tablet:UpdateDetachedData	.\Tablet-2.0.lua	/^function Tablet:UpdateDetachedData(parent, detachedData)$/;"	f
+Tablet:assert(type(func) 	.\Tablet-2.0.lua	/^						Tablet:assert(type(func) == "function", "Method " .. info.func .. " nonexistant")$/;"	f
+Tablet:assert(type(func) 	.\Tablet-2.0.lua	/^					Tablet:assert(type(func) == "function", "func must be a function or method")$/;"	f
+TabletData:AddCategory	.\Tablet-2.0.lua	/^	function TabletData:AddCategory(info, index)$/;"	f
+TabletData:Display	.\Tablet-2.0.lua	/^	function TabletData:Display()$/;"	f
+TabletData:SetHint	.\Tablet-2.0.lua	/^	function TabletData:SetHint(hint)$/;"	f
+TabletData:SetTitle	.\Tablet-2.0.lua	/^	function TabletData:SetTitle(title)$/;"	f
+TabletData:del	.\Tablet-2.0.lua	/^	function TabletData:del()$/;"	f
+TabletData:new	.\Tablet-2.0.lua	/^	function TabletData:new(tablet)$/;"	f
+activate	.\Tablet-2.0.lua	/^local function activate(self, oldLib, oldDeactivate)$/;"	f
+button_OnClick	.\Tablet-2.0.lua	/^		local function button_OnClick()$/;"	f
+button_OnEnter	.\Tablet-2.0.lua	/^local function button_OnEnter()$/;"	f
+button_OnLeave	.\Tablet-2.0.lua	/^local function button_OnLeave()$/;"	f
+button_OnMouseDown	.\Tablet-2.0.lua	/^		local function button_OnMouseDown()$/;"	f
+button_OnMouseUp	.\Tablet-2.0.lua	/^		local function button_OnMouseUp()$/;"	f
+copy	.\Tablet-2.0.lua	/^local function copy(parent)$/;"	f
+deactivate	.\Tablet-2.0.lua	/^local function deactivate(self)$/;"	f
+del	.\Tablet-2.0.lua	/^local function del(t)$/;"	f
+detached.Attach	.\Tablet-2.0.lua	/^	function detached.Attach(detached)$/;"	f
+detached:IsLocked	.\Tablet-2.0.lua	/^	function detached:IsLocked()$/;"	f
+detached:IsShown	.\Tablet-2.0.lua	/^	function detached:IsShown()$/;"	f
+detached:Lock	.\Tablet-2.0.lua	/^	function detached:Lock()$/;"	f
+detached:children	.\Tablet-2.0.lua	/^		function detached:children()$/;"	f
+frame:children	.\Tablet-2.0.lua	/^	function frame:children()$/;"	f
+getsecond	.\Tablet-2.0.lua	/^local function getsecond(_, value)$/;"	f
+if not self.onceRegistered[parent] and type(parent) 	.\Tablet-2.0.lua	/^	if not self.onceRegistered[parent] and type(parent) == "table" and type(parent.SetScript) == "function" and not info.dontHook then$/;"	f
+if this.self:HasScript("OnClick") and type(this.self:GetScript("OnClick")) 	.\Tablet-2.0.lua	/^				if this.self:HasScript("OnClick") and type(this.self:GetScript("OnClick")) == "function" then$/;"	f
+if this.self:HasScript("OnClick") and type(this.self:GetScript("OnClick")) 	.\Tablet-2.0.lua	/^			if this.self:HasScript("OnClick") and type(this.self:GetScript("OnClick")) == "function" then$/;"	f
+if this.self:HasScript("OnMouseDown") and type(this.self:GetScript("OnMouseDown")) 	.\Tablet-2.0.lua	/^			if this.self:HasScript("OnMouseDown") and type(this.self:GetScript("OnMouseDown")) == "function" then$/;"	f
+if this.self:HasScript("OnMouseUp") and type(this.self:GetScript("OnMouseUp")) 	.\Tablet-2.0.lua	/^			if this.self:HasScript("OnMouseUp") and type(this.self:GetScript("OnMouseUp")) == "function" then$/;"	f
+if type(detached:GetScript("OnMouseUp")) 	.\Tablet-2.0.lua	/^					if type(detached:GetScript("OnMouseUp")) == "function" then$/;"	f
+if type(point) 	.\Tablet-2.0.lua	/^	if type(point) == "function" then$/;"	f
+if type(relativePoint) 	.\Tablet-2.0.lua	/^	if type(relativePoint) == "function" then$/;"	f
+if type(this.self:GetScript("OnEnter")) 	.\Tablet-2.0.lua	/^	if type(this.self:GetScript("OnEnter")) == "function" then$/;"	f
+if type(this.self:GetScript("OnLeave")) 	.\Tablet-2.0.lua	/^	if type(this.self:GetScript("OnLeave")) == "function" then$/;"	f
+if type(v1) 	.\Tablet-2.0.lua	/^		if type(v1) == "function" then$/;"	f
+if type(value) 	.\Tablet-2.0.lua	/^		if type(value) == "function" then$/;"	f
+new	.\Tablet-2.0.lua	/^function new(k1, v1, k2, v2, k3, v3, k4, v4, k5, v5, k6, v6, k7, v7, k8, v8, k9, v9, k10, v10, k11, v11, k12, v12, k13, v13, k14, v14, k15, v15, k16, v16, k17, v17, k18, v18, k19, v19, k20, v20, k21, v21, k22, v22, k23, v23, k24, v24, k25, v25, k26, v26, k27, v27, k28, v28, k29, v29, k30, v30)$/;"	f
+table_setn 	.\Tablet-2.0.lua	/^		table_setn = function() end$/;"	f
+tmp 	.\Tablet-2.0.lua	/^tmp = setmetatable({}, {__index = function(self, key)$/;"	f
+tmp[key] 	.\Tablet-2.0.lua	/^	tmp[key] = function(k1, v1, k2, v2, k3, v3, k4, v4, k5, v5, k6, v6, k7, v7, k8, v8, k9, v9, k10, v10, k11, v11, k12, v12, k13, v13, k14, v14, k15, v15, k16, v16, k17, v17, k18, v18, k19, v19, k20, v20, k21, v21, k22, v22, k23, v23, k24, v24, k25, v25, k26, v26, k27, v27, k28, v28, k29, v29, k30, v30)$/;"	f
+tooltip.Detach	.\Tablet-2.0.lua	/^		function tooltip.Detach(tooltip)$/;"	f
+tooltip:AddLine	.\Tablet-2.0.lua	/^		function tooltip:AddLine(info)$/;"	f
+tooltip:ClearLines	.\Tablet-2.0.lua	/^		function tooltip:ClearLines(hide)$/;"	f
+tooltip:GetColor	.\Tablet-2.0.lua	/^		function tooltip:GetColor()$/;"	f
+tooltip:GetFontSizePercent	.\Tablet-2.0.lua	/^		function tooltip:GetFontSizePercent()$/;"	f
+tooltip:GetTransparency	.\Tablet-2.0.lua	/^		function tooltip:GetTransparency()$/;"	f
+tooltip:Hide	.\Tablet-2.0.lua	/^		function tooltip:Hide(newOwner)$/;"	f
+tooltip:IsOwned	.\Tablet-2.0.lua	/^		function tooltip:IsOwned(o)$/;"	f
+tooltip:NumLines	.\Tablet-2.0.lua	/^		function tooltip:NumLines()$/;"	f
+tooltip:Scroll	.\Tablet-2.0.lua	/^		function tooltip:Scroll(down)$/;"	f
+tooltip:SetColor	.\Tablet-2.0.lua	/^		function tooltip:SetColor(r, g, b)$/;"	f
+tooltip:SetFontSizePercent	.\Tablet-2.0.lua	/^		function tooltip:SetFontSizePercent(percent)$/;"	f
+tooltip:SetOwner	.\Tablet-2.0.lua	/^		function tooltip:SetOwner(o)$/;"	f
+tooltip:SetTransparency	.\Tablet-2.0.lua	/^		function tooltip:SetTransparency(alpha)$/;"	f
+tooltip:Show	.\Tablet-2.0.lua	/^		function tooltip:Show(tabletData)$/;"	f
+wrap	.\Tablet-2.0.lua	/^	function wrap(value)$/;"	f
+wrap	.\Tablet-2.0.lua	/^	function wrap(value, name)$/;"	f
