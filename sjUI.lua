@@ -6,14 +6,21 @@ sjUI = AceLibrary("AceAddon-2.0"):new(
 "AceDebug-2.0",
 "AceDB-2.0",
 "AceEvent-2.0",
+"AceHook-2.1",
 "AceModuleCore-2.0")
 
-local ADDON = "Interface\\AddOns\\sjUI\\"
+local ADDON_PATH = "Interface\\AddOns\\sjUI\\"
+local IMG_PATH = ADDON_PATH.."media\\img\\"
 
-local RED, YELLOW, GREEN = "ff0000", "ffff00", "00ff00"
+local WHITE, RED, YELLOW, GREEN = "ffffff", "ff0000", "ffff00", "00ff00"
 
-local compstat_formatter = "%u fps | |cff%s%u|r ms"
+local max_refresh_rate = { GetRefreshRates() }
+max_refresh_rate = max_refresh_rate[getn(max_refresh_rate)]
+
+local compstat_formatter = "|cff%s%u|r fps | |cff%s%u|r ms"
 local money_formatter = "%u|cffffd700g|r %u|cffc7c7cfs|r %u|cffeda55fc|r"
+
+local BAR1, BAR2, BAR3, BAR4, BAR5, PET_BAR = 1, 2, 3, 4, 5, 6
 
 local function MakeMovable(frame)
     frame:EnableMouse(true)
@@ -43,149 +50,300 @@ function sjUI:OnInitialize()
                 desc = "Toggle frame display",
                 type = "execute",
                 func = function()
-                    if sjUI_Menu:IsVisible() then
-                        sjUI_Menu:Hide()
-                    else
-                        sjUI_Menu:Show()
-                    end
                 end
             }
         }
     })
+
+    self.InitComponents()
+    self.Map_Init()
+    self.Right_Init()
+    self.Bar_Init()
+    self.Micro_Init()
 end
 
 function sjUI:OnEnable()
     self:SetDebugging(self.opt.debug)
-
     self:RegisterEvent("PLAYER_ENTERING_WORLD")
-    self:RegisterEvent("PLAYER_MONEY", "UpdateMoney")
-
-    self:InitComponents()
-    self:InitMainFrame()
-    self:InitRightBar()
-
-    self:Bar_Init()
-
-    -- FPS & Latency
-    local compstat_update_interval = 2 or PERFORMANCEBAR_UPDATE_INTERVAL
-    self:ScheduleRepeatingEvent(sjUI.UpdateTime, 1)
-
-    -- Clock
-    self:ScheduleRepeatingEvent(sjUI.UpdateCompStat, compstat_update_interval)
 end
 
 function sjUI:PLAYER_ENTERING_WORLD()
-    --MainMenuBar:Hide()
-    -- Micro
-    self:InitMicroButtons()
-
-    -- Move this into a general "hide vanilla frames" function
+    self.Map_Enable()
+    self.Left_Enable()
+    self.Right_Enable()
+    self.Bar_Enable()
+    self.Micro_Enable()
+    self.OtherAddons_Enable()
     MainMenuBar:Hide()
-
-    -- Right
-    self.UpdateCompStat()
-    self.UpdateTime()
-    self.UpdateMoney()
-
-    -- Bar
-    self:Bar_PositionAll()
 end
 
 function sjUI:InitComponents()
-    self.backdrop = {
-        bgFile = ADDON.."media\\img\\background",
+    local IMG = ADDON_PATH.."media\\img\\"
+    local background = IMG.."background"
+    local border     = IMG.."border-small"
+
+    sjUI.backdrop = {
+        bgFile = background,
         tile = true,
         tileSize = 8,
-        edgeFile = ADDON.."media\\img\\border-small",
+        edgeFile = border,
         edgeSize = 8,
-        insets = {left = 0, right = 0, top = 0, bottom = 0}
+        insets = { left = 0, right = 0, top = 0, bottom = 0 }
     }
-    self.font = ADDON.."media\\font\\pixelmix.ttf"
-    self.font_size = 6
+    sjUI.background = {
+        bgFile = background,
+        tile = true,
+        tileSize = 8,
+    }
+    sjUI.border = {
+        edgeFile = border,
+        edgeSize = 8,
+        insets = { left = 0, right = 0, top = 0, bottom = 0 }
+    }
+    sjUI.font = ADDON_PATH.."media\\font\\pixelmix.ttf"
+    sjUI.font_size = 6
 end
 
-function sjUI:InitMainFrame()
+-----------------------------------------------------------------------------------------
+-- Minimap
+-----------------------------------------------------------------------------------------
+
+function sjUI.Map_Init()
+    sjUI.map = {}
+    sjUI.map.mask = IMG_PATH.."SquareMiniMapMask"
+
+    -- Zoom
+    MinimapZoomIn:Hide()
+    MinimapZoomOut:Hide()
+
+    -- Zone
+    MinimapBorderTop:Hide()
+    MinimapToggleButton:Hide()
+    local f = MinimapZoneTextButton
+    f:ClearAllPoints()
+    f:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, 4)
+    f:SetWidth(147)
+    f:SetHeight(16)
+    f:SetBackdrop(sjUI.backdrop)
+    f:SetBackdropColor(1, 1, 1, 0.75)
+    f = MinimapZoneText
+    f:SetFont(sjUI.font, sjUI.font_size)
+    f:ClearAllPoints()
+    f:SetPoint("CENTER", 0, 1)
+
+    -- Minimap & Backdrop
+    MinimapBorder:SetTexture(nil)
+    f = Minimap
+    f:SetMaskTexture(sjUI.map.mask)
+    f.backdrop = CreateFrame("Frame", "MinimapBackdrop", UIParent)
+    f.backdrop:SetBackdrop(sjUI.backdrop)
+    f.backdrop:SetBackdropColor(1, 1, 1, 0.75)
+    f.backdrop:SetFrameStrata("BACKGROUND")
+    f.backdrop:SetPoint("BOTTOM", MinimapZoneTextButton, "TOP", 0, 2)
+    f.backdrop:SetWidth(147)
+    f.backdrop:SetHeight(147)
+    f:ClearAllPoints()
+    f:SetPoint("CENTER", f.backdrop, "CENTER", 1, -1)
+
+    -- Minimap zoom
+    local f = CreateFrame("Frame", "MinimapMouseWheelZoomFrame", Minimap)
+    f:SetAllPoints()
+    f:EnableMouseWheel(true)
+    f:SetScript("OnMouseWheel", function()
+        if (arg1 > 0) then
+            Minimap_ZoomIn()
+        else
+            Minimap_ZoomOut()
+        end
+    end)
+
+    -- Tracking
+    MiniMapTrackingBorder:Hide()
+    f = MiniMapTrackingFrame
+    f:SetBackdrop(sjUI.backdrop)
+    f:ClearAllPoints()
+    f:SetPoint("TOPLEFT", Minimap, "TOPLEFT", -2, 2)
+    f:SetWidth(27)
+    f:SetHeight(18)
+    f = MiniMapTrackingIcon
+    f:ClearAllPoints()
+    f:SetPoint("TOPLEFT", 3, -3)
+    f:SetPoint("BOTTOMRIGHT", -3, 3)
+    f:SetTexCoord(0.2, 0.8, 0.3, 0.7)
+    f:SetDrawLayer("ARTWORK")
+
+    -- Mail
+    MiniMapMailBorder:Hide()
+    f = MiniMapMailFrame
+    f:SetBackdrop(sjUI.backdrop)
+    f:ClearAllPoints()
+    f:SetPoint("TOPRIGHT", Minimap, "TOPRIGHT", 0, 2)
+    f:SetWidth(27)
+    f:SetHeight(18)
+    f = MiniMapMailIcon
+    f:ClearAllPoints()
+    f:SetPoint("TOPLEFT", 3, -3)
+    f:SetPoint("BOTTOMRIGHT", -3, 3)
+    f:SetTexCoord(0.2, 0.8, 0.3, 0.7)
+    f:SetDrawLayer("ARTWORK")
+
+    -- BG
+    MiniMapBattlefieldBorder:Hide()
+    f = MiniMapBattlefieldFrame
+    f:SetBackdrop(sjUI.backdrop)
+    f:ClearAllPoints()
+    f:SetPoint("TOP", Minimap, "TOP", 0, 2)
+    f:SetWidth(27)
+    f:SetHeight(18)
+    f = MiniMapBattlefieldIcon
+    f:ClearAllPoints()
+    f:SetPoint("TOPLEFT", 3, -3)
+    f:SetPoint("BOTTOMRIGHT", -3, 3)
+    f:SetTexCoord(0.22, 0.78, 0.275, 0.625)
+    f:SetDrawLayer("ARTWORK")
+
+    -- Time
+    GameTimeFrame:Hide()
+end
+
+function sjUI.Map_Enable()
+end
+
+-------------------------------------------------------------------------------
+-- Left info bar
+-------------------------------------------------------------------------------
+
+function sjUI.Left_Init()
+end
+
+function sjUI.Left_Enable()
     local f
-    CreateFrame("Frame", "sjUI_Menu", UIParent)
-    sjUI_Menu:SetPoint("TOP", 0, -10)
-    sjUI_Menu:SetWidth(200)
-    sjUI_Menu:SetHeight(24)
-    sjUI_Menu:SetBackdrop(self.backdrop)
-    sjUI_Menu:SetBackdropColor(1, 1, 1, 0.75)
-    sjUI_Menu:EnableMouse(true)
-    sjUI_Menu:RegisterForDrag("LeftButton")
-    sjUI_Menu:SetMovable(true)
-    sjUI_Menu:SetScript("OnDragStart", function()
-        sjUI_Menu:StartMoving()
-    end)
-    sjUI_Menu:SetScript("OnDragStop", function()
-        sjUI_Menu:StopMovingOrSizing()
-    end)
-    f = CreateFrame("Button", nil, sjUI_Menu, "UIPanelCloseButton")
-    f:SetPoint("RIGHT", 0, 0)
-    f = sjUI_Menu:CreateFontString(nil, "LOW")
-    f:SetPoint("CENTER", 0, 0)
-    f:SetFontObject(GameFontHighlight)
-    f:SetText("sjUI Main Frame")
+
+    CreateFrame("Frame", "sjUI_Left", UIParent)
+    sjUI_Left:SetFrameStrata("LOW")
+    sjUI_Left:SetWidth(316)
+    sjUI_Left:SetHeight(16)
+    sjUI_Left:ClearAllPoints()
+    sjUI_Left:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 4, 4)
+    sjUI_Left:SetBackdrop(sjUI.backdrop)
+    sjUI_Left:SetBackdropColor(1, 1, 1, 0.75)
+    sjUI_Left:EnableMouse(true)
+    sjUI_Left:RegisterForDrag("LeftButton")
+    sjUI_Left:SetMovable(true)
+
+    -- Left: Mail
+    -- Center: ?
+    -- Right: Bag slots
 end
 
-function sjUI.InitRightBar()
-    CreateFrame("Frame", "sjUI_Right", sjUI_Menu)
-    sjUI_Right:SetFrameStrata("LOW")
-    sjUI_Right:SetWidth(250)
-    sjUI_Right:SetHeight(16)
-    sjUI_Right:ClearAllPoints()
-    sjUI_Right:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -4, 4)
-    sjUI_Right:SetBackdrop(sjUI.backdrop)
-    sjUI_Right:SetBackdropColor(1, 1, 1, 0.75)
-    sjUI_Right:EnableMouse(true)
-    sjUI_Right:RegisterForDrag("LeftButton")
-    sjUI_Right:SetMovable(true)
-    sjUI_Right:SetScript("OnDragStart", function()
-        sjUI_Right:StartMoving()
-    end)
-    sjUI_Right:SetScript("OnDragStop", function()
-        sjUI_Right:StopMovingOrSizing()
-    end)
+-------------------------------------------------------------------------------
+-- Right info bar
+-------------------------------------------------------------------------------
+
+function sjUI.Right_Init()
+    local r = CreateFrame("Frame", "sjUI_Right", UIParent)
+    r:SetFrameStrata("LOW")
+    r:SetWidth(316)
+    r:SetHeight(16)
+    r:SetPoint("BOTTOMRIGHT", -4, 4)
+    r:SetBackdrop(sjUI.backdrop)
+    r:SetBackdropColor(1, 1, 1, 0.75)
 
     -- Left: FPS/Latency (reuse performance bar)
-    sjUI_CompStat = MainMenuBarPerformanceBarFrameButton
-    sjUI_CompStat:SetParent(sjUI_Right)
-    sjUI_CompStat:ClearAllPoints()
-    sjUI_CompStat:SetPoint("LEFT", 0, 0)
-    sjUI_CompStat:SetWidth(90)
-    sjUI_CompStat:SetHeight(16)
-    sjUI_CompStat:SetHitRectInsets(2, -2, 2, -2)
-    sjUI_CompStat:CreateFontString("sjUI_CompStatLabel", "LOW")
-    sjUI_CompStatLabel:SetFont(sjUI.font, sjUI.font_size)
-    sjUI_CompStatLabel:SetPoint("LEFT", 7, 1)
-    sjUI_CompStat:SetScript("OnUpdate", nil)
+    local f = MainMenuBarPerformanceBarFrameButton
+    f:SetParent(r)
+    f:ClearAllPoints()
+    f:SetPoint("LEFT", 0, 0)
+    f:SetWidth(90)
+    f:SetHeight(16)
+    f:SetHitRectInsets(2, -2, 2, -2)
+    f:SetScript("OnUpdate", nil)
+    f.label = f:CreateFontString("sjUI_RightCompStatLabel", "LOW")
+    f.label:SetFont(sjUI.font, sjUI.font_size)
+    f.label:SetTextColor(0.6, 0.6, 0.6, 1)
+    f.label:SetPoint("LEFT", 7, 1)
 
     -- Center: Time
-    sjUI_Right:CreateFontString("sjUI_TimeLabel", "LOW")
-    sjUI_TimeLabel:SetFont(sjUI.font, sjUI.font_size)
-    sjUI_TimeLabel:SetPoint("CENTER", 0, 1)
+    f = r:CreateFontString("sjUI_RightTimeLabel", "LOW")
+    f:SetFont(sjUI.font, sjUI.font_size)
+    f:SetTextColor(0.6, 0.6, 0.6, 1)
+    f:SetPoint("CENTER", 0, 1)
 
     -- Right: Money
-    sjUI_Right:CreateFontString("sjUI_MoneyLabel", "LOW")
-    sjUI_MoneyLabel:SetFont(sjUI.font, sjUI.font_size)
-    sjUI_MoneyLabel:SetPoint("RIGHT", -7, 1)
+    f = r:CreateFontString("sjUI_RightMoneyLabel", "LOW")
+    f:SetFont(sjUI.font, sjUI.font_size)
+    f:SetTextColor(0.6, 0.6, 0.6, 1)
+    f:SetPoint("RIGHT", -7, 1)
 end
 
-function sjUI.InitMicroButtons()
-    -- Character
-    MicroButtonPortrait:Hide()
+function sjUI.Right_Enable()
+    sjUI:RegisterEvent("PLAYER_MONEY", "Right_UpdateMoney")
+    -- FPS & Latency
+    local compstat_update_interval = 2 or PERFORMANCEBAR_UPDATE_INTERVAL
+    sjUI:ScheduleRepeatingEvent(sjUI.Right_UpdateTime, 1)
+    -- Clock
+    sjUI:ScheduleRepeatingEvent(sjUI.Right_UpdateCompStat, compstat_update_interval)
+    -- Initial update
+    sjUI.Right_UpdateCompStat()
+    sjUI.Right_UpdateTime()
+    sjUI.Right_UpdateMoney()
+end
 
-    local micro_buttons = {
+function sjUI.Right_UpdateCompStat()
+    local fps, _, _, latency = GetFramerate(), GetNetStats()
+    local colorA, colorB
+    if fps >= max_refresh_rate then
+        colorA = WHITE
+    elseif fps >= 60 then
+        colorA = GREEN
+    elseif fps >= 30 then
+        colorA = YELLOW
+    else
+        colorA = RED
+    end
+    if latency > PERFORMANCEBAR_MEDIUM_LATENCY then
+        colorB = RED
+    elseif latency > PERFORMANCEBAR_LOW_LATENCY then
+        colorB = YELLOW
+    else
+        colorB = GREEN
+    end
+    sjUI_RightCompStatLabel:SetText(format(compstat_formatter, colorA, fps, colorB, latency))
+end
+
+function sjUI.Right_UpdateTime()
+    sjUI_RightTimeLabel:SetText(date())
+end
+
+function sjUI.Right_UpdateMoney()
+    local money = GetMoney()
+    local gold = floor(abs(money/10000))
+    local silver = floor(abs(mod(money/100, 100)))
+    local copper = floor(abs(mod(money, 100)))
+    sjUI_RightMoneyLabel:SetText(format(money_formatter, gold, silver, copper))
+end
+
+-------------------------------------------------------------------------------
+-- Micro buttons
+-------------------------------------------------------------------------------
+
+function sjUI.Micro_Init()
+    sjUI.micro_buttons = {
         CharacterMicroButton, SpellbookMicroButton, TalentMicroButton,
         QuestLogMicroButton, SocialsMicroButton, WorldMapMicroButton,
         MainMenuMicroButton, HelpMicroButton
     }
-
-    for i, f in micro_buttons do
-        f:SetParent(sjUI_Menu)
-        f:ClearAllPoints()
-        f:SetWidth(22)
+    local text = {
+        "CHARACTER", "SPELLBOOK", "TALENTS", "QUEST LOG", "SOCIAL",
+        "WORLD MAP", "MAIN MENU", "SUPPORT"
+    }
+    for i, v in sjUI.micro_buttons do
+        _G["MicroButton"..i] = v
+    end
+    -- Style
+    local f
+    for i, f in sjUI.micro_buttons do
+        f:SetWidth(30)
         f:SetHeight(16)
         f:SetHitRectInsets(0, 0, 0, 0)
         -- Textures
@@ -195,201 +353,281 @@ function sjUI.InitMicroButtons()
         -- Backdrop
         f:SetBackdrop(sjUI.backdrop)
         f:SetBackdropColor(1, 1, 1, 0.75)
-        local function MakeHandler(frame, b, old)
-            return function()
-                frame:SetBackdropBorderColor(1, 1, b, 1)
-                if old then
-                    old()
-                end
-            end
-        end
-        f:SetScript("OnEnter", MakeHandler(f, 0, f:GetScript("OnEnter")))
-        f:SetScript("OnLeave", MakeHandler(f, 1, f:GetScript("OnLeave")))
         -- Label
-        local t = f:CreateFontString(f:GetName().."Label", "OVERLAY")
-        t:SetFont(ADDON.."media\\font\\pixelmix.ttf", 6)
-        t:SetText(string.sub(f:GetName(), 1, 2))
-        t:SetPoint("CENTER", 0, 1)
+        f.label = f:CreateFontString(f:GetName().."Label", "OVERLAY")
+        f.label:SetPoint("CENTER", 0, 1)
+        f.label:SetFont(ADDON_PATH.."media\\font\\pixelmix.ttf", 6)
+        f.label:SetTextColor(0.6, 0.6, 0.6, 1)
+        f.label:SetText(text[i])
     end
+end
 
-    for i=8, 1, -1 do
-        local f = micro_buttons[i]
-        if i < 8 then
-            f:SetPoint("RIGHT", micro_buttons[i+1], "LEFT", -2, 0)
-            --f:SetPoint("BOTTOM", micro_buttons[i+1], "TOP", 0, 2)
+function sjUI.Micro_Enable()
+    -- Hide character portrait
+    MicroButtonPortrait:Hide()
+    -- Position buttons
+    local f
+    for i = 1, 8 do
+        f = sjUI.micro_buttons[i]
+        f:SetParent(UIParent)
+        f:ClearAllPoints()
+        f:SetWidth(77.5)
+        f:SetHeight(16)
+        if i < 5 then
+            f:SetPoint("BOTTOMLEFT", sjUI_Left, "TOPLEFT", (i-1)*(77.5+2), 2)
         else
-            f:SetPoint("RIGHT", sjUI_Right, "LEFT", -2, 0)
-            --f:SetPoint("BOTTOMRIGHT", sjUI_Right, "TOPRIGHT", 0, 2)
+            f:SetPoint("BOTTOMLEFT", sjUI_Right, "TOPLEFT", (i-5)*(77.5+2), 2)
         end
     end
-end
-
-function sjUI.UpdateCompStat()
-    local _, _, latency = GetNetStats()
-    local color
-    if latency > PERFORMANCEBAR_MEDIUM_LATENCY then
-        color = RED
-    elseif latency > PERFORMANCEBAR_LOW_LATENCY then
-        color = YELLOW
-    else
-        color = GREEN
-    end
-    sjUI_CompStatLabel:SetText(format(compstat_formatter, GetFramerate(), color, latency))
-end
-
-function sjUI.UpdateTime()
-    sjUI_TimeLabel:SetText(date("%H:%M:%S"))
-end
-
-function sjUI.UpdateMoney()
-    local money = GetMoney()
-    local gold = floor(abs(money/10000))
-    local silver = floor(abs(mod(money/100, 100)))
-    local copper = floor(abs(mod(money, 100)))
-    sjUI_MoneyLabel:SetText(format(money_formatter, gold, silver, copper))
-end
-
--------------------------------------------------------------------------------
--- Bars
--------------------------------------------------------------------------------
-
-local function StyleBar(bar)
-    local num_buttons = getn(bar.buttons)
-    local size
-    if num_buttons == 12 then
-        size = 36
-    else
-        size = 30
-    end
-    bar:SetWidth(num_buttons*size+(num_buttons-1)*sjUI.bar.spacing+2*sjUI.bar.padding)
-    bar:SetHeight(size+2*sjUI.bar.padding)
-    bar:SetBackdrop(sjUI.backdrop)
-    bar:SetBackdropColor(1, 1, 1, 0.75)
-end
-
-local function StyleButton(button)
-end
-
-function sjUI:Bar_Init()
-    self.bar = {}
-    self.bar.spacing = 2
-    self.bar.padding = 4
-    self.bar.is_zoom = true
-    --self.bar.all_action_buttons = {}
-    self.bar.all_buttons = {}
-    self.bar.all_icons = {}
-    --self.bar.all_normal_textures = {}
-    self.bar.all_bars= {}
-
-    local spacing = self.bar.spacing
-    local padding = self.bar.padding
-    local bar, button, f, pushed, highlight, _
-
-    for i = 1, 7 do
-        bar = CreateFrame("Frame", "Bar"..i, UIParent)
-        bar.buttons = {}
-        table.insert(self.bar.all_bars, bar)
-        for j = 1, 12 do
-            if i < 6 or j < 11 then
-                button = _G["Bar"..i.."Button"..j]
-                button.normal = button:GetNormalTexture()
-                button.pushed = button:GetPushedTexture()
-                button.highlight = button:GetHighlightTexture()
-                table.insert(bar.buttons, button)
-                --table.insert(self.bar.all_action_buttons, button)
-                table.insert(self.bar.all_buttons, button)
-                table.insert(self.bar.all_icons, _G["Bar"..i.."Button"..j.."Icon"])
-                --table.insert(self.bar.all_normal_textures, _G["Bar"..i.."Button"..j.."NT"])
-            end
-        end
-    end
-
-    -- Set parents
-    for i = 1, 12 do
-        _G["Bar1Button"..i]:SetParent("Bar1")
-    end
-    MultiBarBottomLeft:SetParent("Bar2")
-    MultiBarBottomRight:SetParent("Bar3")
-    MultiBarRight:SetParent("Bar4")
-    MultiBarLeft:SetParent("Bar5")
-    for i = 1, 10 do
-        _G["Bar6Button"..i]:SetParent("Bar6")
-        _G["Bar7Button"..i]:SetParent("Bar7")
-    end
-
-    for i, bar in self.bar.all_bars do
-        MakeMovable(bar)
-        -- Label frame
-        --f = CreateFrame("Frame", nil, bar)
-        --f:SetWidth(16)
-        --f:SetHeight(16)
-        --f:SetBackdrop(self.backdrop)
-        --f:SetBackdropColor(1, 1, 1, 0.75)
-        --f:SetPoint("TOPRIGHT", bar, "TOPLEFT", -2, 0)
-        -- Label
-        --f = f:CreateFontString(nil, "LOW")
-        --f:SetFont(self.font, self.font_size)
-        --f:SetText(i)
-        --f:SetPoint("CENTER", 0, 1)
-        -- Buttons
-        for j, button in bar.buttons do
-            button:ClearAllPoints()
-            local button_size
-            if i < 6 then
-                button_size = 36
-            else
-                button_size = 30
-            end
-            button:SetPoint("LEFT", bar, "LEFT", (j-1)*(button_size+spacing)+padding, 0)
-        end
-    end
-
-    self:Bar_StyleAll()
-    self:Bar_HideTextures()
-    self:Bar_SetButtonZoom(self.bar.is_zoom)
-end
-
-function sjUI:Bar_StyleAllBars()
-    for i, bar in self.bar.all_bars do
-        StyleBar(bar)
-    end
-end
-
-function sjUI:Bar_StyleAllButtons()
-    --for i, button in self.bar.all_buttons do
-        --StyleButton(button)
+    --for i = 8, 1, -1 do
+    --f = sjUI.micro_buttons[i]
+    --f:SetParent(UIParent)
+    --f:ClearAllPoints()
+    --if i == 8 then
+    --f:SetPoint("BOTTOMRIGHT", -4, 22)
+    --else
+    --f:SetPoint("BOTTOM", sjUI.micro_buttons[i+1], "TOP", 0, 2)
+    --end
     --end
 end
 
-function sjUI:Bar_StyleAll()
-    sjUI:Bar_StyleAllBars()
-    sjUI:Bar_StyleAllButtons()
-end
+-------------------------------------------------------------------------------
+-- Buttons
+-------------------------------------------------------------------------------
 
-function sjUI:Bar_PositionAll()
-    for i, bar in self.bar.all_bars do
+function sjUI.Bar_Init()
+    -- Setup tables and values
+    sjUI.bar = {}
+    sjUI.bar.all_bars= {}
+    sjUI.bar.all_buttons = {}
+    sjUI.bar.button_size = 24
+    sjUI.bar.skin = {
+        normal    = ADDON_PATH.."media\\img\\button_36n.tga",
+        pushed    = ADDON_PATH.."media\\img\\button_36p.tga",
+        highlight = ADDON_PATH.."media\\img\\button_36h.tga"
+    }
+    sjUI.bar.is_zoom = true
+    sjUI.bar.show_all = true
+
+    -- Setup mock mini-map
+    local mmm = CreateFrame("Frame", "MockMiniMap", UIParent)
+    mmm:SetWidth(140)
+    mmm:SetHeight(140)
+    --mmm:SetBackdrop(sjUI.backdrop)
+    mmm:SetBackdropColor(1, 1, 1, 0.75)
+    mmm:SetPoint("BOTTOM", 0, 4)
+
+    -- Left container
+    local left = CreateFrame("Frame", "sjUI_ButtonsLeft", UIParent)
+    left:SetPoint("BOTTOM", -256, 4)
+    left:SetWidth(12*30)
+    left:SetHeight(2*30)
+    left:SetBackdrop(sjUI.background)
+    left:SetBackdropColor(1, 1, 1, 0.75)
+    left.texture = left:CreateTexture(nil, "BORDER")
+    left.texture:SetPoint("TOPLEFT", 0, 0)
+    left.texture:SetWidth(512)
+    left.texture:SetHeight(128)
+    left.texture:SetTexture(ADDON_PATH.."media\\img\\button-container1")
+
+    -- Right container
+    local right = CreateFrame("Frame", "sjUI_ButtonsRight", UIParent)
+    right:SetPoint("BOTTOM", 256, 4)
+    right:SetWidth(12*30)
+    right:SetHeight(2*30)
+    right:SetBackdrop(sjUI.background)
+    right:SetBackdropColor(1, 1, 1, 0.75)
+    right.texture = right:CreateTexture(nil, "BORDER")
+    right.texture:SetPoint("TOPLEFT", 0, 0)
+    right.texture:SetWidth(512)
+    right.texture:SetHeight(128)
+    right.texture:SetTexture(ADDON_PATH.."media\\img\\button-container1")
+
+    -- Side container
+    local side = CreateFrame("Frame", "sjUI_ButtonsSide", UIParent)
+    side:SetPoint("RIGHT", -4, 0)
+    side:SetWidth(30)
+    side:SetHeight(30*12)
+    side:SetBackdrop(sjUI.background)
+    side:SetBackdropColor(1, 1, 1, 0.75)
+    side.texture = side:CreateTexture(nil, "BORDER")
+    side.texture:SetPoint("TOPLEFT", 0, 0)
+    side.texture:SetWidth(32)
+    side.texture:SetHeight(512)
+    side.texture:SetTexture(ADDON_PATH.."media\\img\\button-container2")
+
+    -- Pet container
+    local pet = CreateFrame("Frame", "sjUI_ButtonsPet", UIParent)
+    pet:SetPoint("RIGHT", side, "LEFT", 0, 0)
+    pet:SetWidth(30)
+    pet:SetHeight(10*30)
+    pet:SetBackdrop(sjUI.background)
+    pet:SetBackdropColor(1, 1, 1, 0.75)
+    pet.texture = pet:CreateTexture(nil, "BORDER")
+    pet.texture:SetPoint("TOPLEFT", 0, 0)
+    pet.texture:SetWidth(32)
+    pet.texture:SetHeight(512)
+    pet.texture:SetTexture(ADDON_PATH.."media\\img\\button-container3")
+
+    -- Setup bars
+    CreateFrame("Frame", "Bar1", UIParent)
+    Bar2 = MultiBarBottomLeft
+    Bar3 = MultiBarBottomRight
+    Bar4 = MultiBarLeft
+    Bar5 = MultiBarRight
+    Bar6 = PetActionBarFrame
+
+    -- Alias buttons
+    local bar, button, old, new, num_buttons
+    for i,v in {
+        "ActionButton",
+        "MultiBarBottomLeftButton",
+        "MultiBarBottomRightButton",
+        "MultiBarLeftButton",
+        "MultiBarRightButton",
+        "PetActionButton" } do
         bar = _G["Bar"..i]
-        bar:ClearAllPoints()
-        bar:SetPoint("CENTER", 0, -(i-1)*(36+2*self.bar.padding+4))
-        bar:Show()
-    end
-end
-
-function sjUI:Bar_HideTextures()
-    for i, button in self.bar.all_buttons do
-        button.normal:SetAlpha(0)
-        button.pushed:SetAlpha(0)
-        button.highlight:SetAlpha(0)
-    end
-end
-
-function sjUI:Bar_SetButtonZoom(is_zoom)
-    for i, v in self.bar.all_icons do
-        if is_zoom then
-            v:SetTexCoord(0.07, 0.93, 0.07, 0.93) -- Zoomed
+        bar:SetParent(left)
+        if i < 6 then
+            num_buttons = 12
         else
-            v:SetTexCoord(0, 1, 0, 1) -- Normal
+            num_buttons = 10
+        end
+        for j = 1, num_buttons do
+            old = v..j
+            new = "Bar"..i.."Button"..j
+            button = _G[old]
+            _G[new] = button
+            button:SetParent(bar)
+            button:SetWidth(36)
+            button:SetHeight(36)
+            button:SetScale(5/6)
+            button.icon = _G[old.."Icon"]
+            button.hotkey = _G[old.."HotKey"]
+            button.count = _G[old.."Count"]
+            button.macro_text = _G[old.."Name"]
+            button.normal = button:GetNormalTexture()
+            button.pushed = button:GetPushedTexture()
+            button.highlight = button:GetHighlightTexture()
+            tinsert(sjUI.bar.all_buttons, button)
         end
     end
+    sjUI:Hook("ActionButton_Update")
+end
+
+function sjUI.Bar_Enable()
+    local button
+    -- Position action bar buttons
+    for i, b in { 1, 2, 4, 3 } do
+        for j = 1, 12 do
+            button = _G["Bar"..b.."Button"..j]
+            button:ClearAllPoints()
+            if i < 3 then
+                button:SetPoint("TOPLEFT", sjUI_ButtonsLeft, "TOPLEFT",
+                (j-1)*36, -(i-1)*36)
+            else
+                button:SetPoint("TOPLEFT", sjUI_ButtonsRight, "TOPLEFT",
+                (j-1)*36, -(i-3)*36)
+            end
+        end
+    end
+    -- Position side bar buttons
+    for j = 1, 12 do
+        button = _G["Bar5Button"..j]
+        button:ClearAllPoints()
+        button:SetPoint("TOP", sjUI_ButtonsSide, "TOP", 0, -(j-1)*36)
+    end
+    -- Position pet bar buttons
+    for j = 1, 10 do
+        button = _G["Bar6Button"..j]
+        button:ClearAllPoints()
+        button:SetPoint("TOP", sjUI_ButtonsPet, "TOP", 0, -(j-1)*36)
+    end
+    sjUI:RegisterEvent("PET_BAR_UPDATE", sjUI.Bar_Update)
+    -- Initial update
+    sjUI.Bar_Update()
+end
+
+function sjUI.Bar_Update()
+    if UnitExists("pet") then
+        --Bar6:Show()
+        sjUI_ButtonsPet:Show()
+    else
+        --Bar6:Hide()
+        sjUI_ButtonsPet:Hide()
+    end
+    for i, button in sjUI.bar.all_buttons do
+        if sjUI.bar.show_all then
+            button:Show()
+        end
+        sjUI.Bar_StyleButton(button)
+    end
+end
+
+function sjUI.Bar_StyleButton(button)
+    -- Icon
+    button.icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+    button.icon:ClearAllPoints()
+    button.icon:SetPoint("TOPLEFT", 4, -4)
+    button.icon:SetPoint("BOTTOMRIGHT", -4, 4)
+    -- Hot key
+    button.hotkey:SetFont(sjUI.font, sjUI.font_size+2, "OUTLINE")
+    button.hotkey:ClearAllPoints()
+    button.hotkey:SetPoint("TOPRIGHT", -2, -1)
+    -- Count
+    button.count:SetFont(sjUI.font, sjUI.font_size+2, "OUTLINE")
+    button.count:ClearAllPoints()
+    button.count:SetPoint("BOTTOMRIGHT", -2, 5)
+    -- Macro text
+    button.macro_text:SetFont(sjUI.font, sjUI.font_size+2, "OUTLINE")
+    button.macro_text:Hide()
+    -- Normal
+    button.normal:SetTexture(nil)
+    -- Pushed
+    button.pushed:SetTexture(sjUI.bar.skin.pushed)
+    button.pushed:ClearAllPoints()
+    button.pushed:SetPoint("CENTER", 0, 0)
+    button.pushed:SetWidth(64)
+    button.pushed:SetHeight(64)
+    button.pushed:SetAlpha(1)
+    -- Highlight
+    button.highlight:SetTexture(sjUI.bar.skin.highlight)
+    button.highlight:ClearAllPoints()
+    button.highlight:SetPoint("CENTER", 0, 0)
+    button.highlight:SetWidth(64)
+    button.highlight:SetHeight(64)
+    button.highlight:SetAlpha(1)
+end
+
+function sjUI.ActionButton_Update()
+    sjUI.hooks["ActionButton_Update"](arg1)
+    sjUI:Bar_Update()
+end
+
+-------------------------------------------------------------------------------
+-- Other addons
+-------------------------------------------------------------------------------
+
+function sjUI.OtherAddons_Init()
+end
+
+function sjUI.OtherAddons_Enable()
+    -- SW Stats
+    --local f = SW_IconFrame_Button
+    --local icon, border = f:GetRegions()
+    --icon:Hide()
+    --border:Hide()
+    --f = SW_IconFrame
+    --f:SetBackdrop(sjUI.backdrop)
+    --f:SetBackdropColor(1, 1, 1, 0.75)
+    --f:ClearAllPoints()
+    --f:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 4, 22)
+    --f:SetWidth(30)
+    --f:SetHeight(16)
+    --f.label = f:CreateFontString(nil)
+    --f.label:SetPoint("CENTER", 0, 1)
+    --f.label:SetFont(sjUI.font, sjUI.font_size)
+    --f.label:SetTextColor(0.6, 0.6, 0.6, 1)
+    --f.label:SetText("SWS")
 end
 
