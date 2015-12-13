@@ -1,8 +1,8 @@
 ## Interface: 11200
-## Title: sjUI
+## Title: |cffffff00s|r|cff007fffj|rUI |cff7fff7f-Ace2-|r |cffff00001.12|r
 ## Notes: 
 ## Author: 
-## SavedVariables: 
+## SavedVariables: sjUI_DB
 ## OptionalDeps: 
 
 libs\Ace2\AceLibrary\AceLibrary.lua

@@ -17,7 +17,8 @@ local WHITE, RED, YELLOW, GREEN = "ffffff", "ff0000", "ffff00", "00ff00"
 local max_refresh_rate = { GetRefreshRates() }
 max_refresh_rate = max_refresh_rate[getn(max_refresh_rate)]
 
-local compstat_formatter = "|cff%s%u|r fps | |cff%s%u|r ms"
+local compstat_formatter = "|cff%s%u|r fps · |cff%s%u|r ms"
+local time_formatter = "EAST %d:%d · FRANCE %d:%d"
 local money_formatter = "%u|cffffd700g|r %u|cffc7c7cfs|r %u|cffeda55fc|r"
 
 local BAR1, BAR2, BAR3, BAR4, BAR5, PET_BAR = 1, 2, 3, 4, 5, 6
@@ -34,23 +35,62 @@ local function MakeMovable(frame)
     end)
 end
 
-function sjUI_OnLoad()
-end
-
 function sjUI:OnInitialize()
     self:RegisterDB("sjUI_DB")
-    self:RegisterDefaults("profile", { debug = true })
+    self:RegisterDefaults("profile", {
+        debug = true,
+        use_own_font = false,
+        button_show_hotkey = true,
+        button_show_count = true,
+        button_show_macro = false
+    })
     self.opt = self.db.profile
 
     self:RegisterChatCommand({ "/sjUI" }, {
         type = "group",
         args = {
-            frame = {
-                name = "Frame",
-                desc = "Toggle frame display",
-                type = "execute",
-                func = function()
-                end
+            bar = {
+                name = "Bar",
+                desc = "Action bar configuration options",
+                type = "group",
+                args = {
+                    hotkey = {
+                        name = "Show hotkey",
+                        desc = "Show action button hotkey labels",
+                        type = "toggle",
+                        get = function()
+                            return sjUI.opt.bar_show_hotkey
+                        end,
+                        set = function(set)
+                            sjUI.opt.bar_show_hotkey = set
+                            sjUI.Bar_Update()
+                        end
+                    },
+                    count = {
+                        name = "Show count",
+                        desc = "Show action button count labels",
+                        type = "toggle",
+                        get = function()
+                            return sjUI.opt.bar_show_count
+                        end,
+                        set = function(set)
+                            sjUI.opt.bar_show_count = set
+                            sjUI.Bar_Update()
+                        end
+                    },
+                    macro = {
+                        name = "Show macro names",
+                        desc = "Show action button macro name labels",
+                        type = "toggle",
+                        get = function()
+                            return sjUI.opt.bar_show_macro
+                        end,
+                        set = function(set)
+                            sjUI.opt.bar_show_macro = set
+                            sjUI.Bar_Update()
+                        end
+                    }
+                }
             }
         }
     })
@@ -100,8 +140,8 @@ function sjUI:InitComponents()
         edgeSize = 8,
         insets = { left = 0, right = 0, top = 0, bottom = 0 }
     }
-    sjUI.font = ADDON_PATH.."media\\font\\pixelmix.ttf"
-    sjUI.font_size = 6
+    sjUI.font = ADDON_PATH.."media\\font\\MyriadCondensed.ttf"
+    sjUI.font_size = 9
 end
 
 -----------------------------------------------------------------------------------------
@@ -127,7 +167,9 @@ function sjUI.Map_Init()
     f:SetBackdrop(sjUI.backdrop)
     f:SetBackdropColor(1, 1, 1, 0.75)
     f = MinimapZoneText
-    f:SetFont(sjUI.font, sjUI.font_size)
+    if sjUI.opt.use_own_font then
+        f:SetFont(sjUI.font, sjUI.font_size)
+    end
     f:ClearAllPoints()
     f:SetPoint("CENTER", 0, 1)
 
@@ -162,7 +204,7 @@ function sjUI.Map_Init()
     f = MiniMapTrackingFrame
     f:SetBackdrop(sjUI.backdrop)
     f:ClearAllPoints()
-    f:SetPoint("TOPLEFT", Minimap, "TOPLEFT", -2, 2)
+    f:SetPoint("BOTTOMLEFT", Minimap, "BOTTOMLEFT", -2, 0)
     f:SetWidth(27)
     f:SetHeight(18)
     f = MiniMapTrackingIcon
@@ -177,7 +219,7 @@ function sjUI.Map_Init()
     f = MiniMapMailFrame
     f:SetBackdrop(sjUI.backdrop)
     f:ClearAllPoints()
-    f:SetPoint("TOPRIGHT", Minimap, "TOPRIGHT", 0, 2)
+    f:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 0, 0)
     f:SetWidth(27)
     f:SetHeight(18)
     f = MiniMapMailIcon
@@ -192,7 +234,7 @@ function sjUI.Map_Init()
     f = MiniMapBattlefieldFrame
     f:SetBackdrop(sjUI.backdrop)
     f:ClearAllPoints()
-    f:SetPoint("TOP", Minimap, "TOP", 0, 2)
+    f:SetPoint("BOTTOM", Minimap, "BOTTOM", 0, 0)
     f:SetWidth(27)
     f:SetHeight(18)
     f = MiniMapBattlefieldIcon
@@ -222,7 +264,7 @@ function sjUI.Left_Enable()
     CreateFrame("Frame", "sjUI_Left", UIParent)
     sjUI_Left:SetFrameStrata("LOW")
     sjUI_Left:SetWidth(316)
-    sjUI_Left:SetHeight(16)
+    sjUI_Left:SetHeight(14)
     sjUI_Left:ClearAllPoints()
     sjUI_Left:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 4, 4)
     sjUI_Left:SetBackdrop(sjUI.backdrop)
@@ -244,7 +286,7 @@ function sjUI.Right_Init()
     local r = CreateFrame("Frame", "sjUI_Right", UIParent)
     r:SetFrameStrata("LOW")
     r:SetWidth(316)
-    r:SetHeight(16)
+    r:SetHeight(14)
     r:SetPoint("BOTTOMRIGHT", -4, 4)
     r:SetBackdrop(sjUI.backdrop)
     r:SetBackdropColor(1, 1, 1, 0.75)
@@ -259,28 +301,40 @@ function sjUI.Right_Init()
     f:SetHitRectInsets(2, -2, 2, -2)
     f:SetScript("OnUpdate", nil)
     f.label = f:CreateFontString("sjUI_RightCompStatLabel", "LOW")
-    f.label:SetFont(sjUI.font, sjUI.font_size)
+    if sjUI.opt.use_own_font then
+        f.label:SetFont(sjUI.font, sjUI.font_size)
+    else
+        f.label:SetFontObject(GameFontNormalSmall)
+    end
     f.label:SetTextColor(0.6, 0.6, 0.6, 1)
-    f.label:SetPoint("LEFT", 7, 1)
+    f.label:SetPoint("LEFT", 7, 0)
 
     -- Center: Time
     f = r:CreateFontString("sjUI_RightTimeLabel", "LOW")
-    f:SetFont(sjUI.font, sjUI.font_size)
+    if sjUI.opt.use_own_font then
+        f:SetFont(sjUI.font, sjUI.font_size)
+    else
+        f:SetFontObject(GameFontNormalSmall)
+    end
     f:SetTextColor(0.6, 0.6, 0.6, 1)
-    f:SetPoint("CENTER", 0, 1)
+    f:SetPoint("CENTER", 0, 0)
 
     -- Right: Money
     f = r:CreateFontString("sjUI_RightMoneyLabel", "LOW")
-    f:SetFont(sjUI.font, sjUI.font_size)
+    if sjUI.opt.use_own_font then
+        f:SetFont(sjUI.font, sjUI.font_size)
+    else
+        f:SetFontObject(GameFontNormalSmall)
+    end
     f:SetTextColor(0.6, 0.6, 0.6, 1)
-    f:SetPoint("RIGHT", -7, 1)
+    f:SetPoint("RIGHT", -7, 0)
 end
 
 function sjUI.Right_Enable()
     sjUI:RegisterEvent("PLAYER_MONEY", "Right_UpdateMoney")
     -- FPS & Latency
     local compstat_update_interval = 2 or PERFORMANCEBAR_UPDATE_INTERVAL
-    sjUI:ScheduleRepeatingEvent(sjUI.Right_UpdateTime, 1)
+    sjUI:ScheduleRepeatingEvent(sjUI.Right_UpdateTime, 3)
     -- Clock
     sjUI:ScheduleRepeatingEvent(sjUI.Right_UpdateCompStat, compstat_update_interval)
     -- Initial update
@@ -312,7 +366,10 @@ function sjUI.Right_UpdateCompStat()
 end
 
 function sjUI.Right_UpdateTime()
-    sjUI_RightTimeLabel:SetText(date())
+    local lt_h, lt_m = date("%H"), date("%M")
+    local st_h, st_m = date("!%H"), date("!%M")
+    -- Middle dot digraph: ".M"
+    sjUI_RightTimeLabel:SetText(format(time_formatter, lt_h+3, lt_m, st_h, st_m))
 end
 
 function sjUI.Right_UpdateMoney()
@@ -343,8 +400,8 @@ function sjUI.Micro_Init()
     -- Style
     local f
     for i, f in sjUI.micro_buttons do
-        f:SetWidth(30)
-        f:SetHeight(16)
+        f:SetWidth(77.5)
+        f:SetHeight(14)
         f:SetHitRectInsets(0, 0, 0, 0)
         -- Textures
         f:SetNormalTexture(nil)
@@ -356,7 +413,11 @@ function sjUI.Micro_Init()
         -- Label
         f.label = f:CreateFontString(f:GetName().."Label", "OVERLAY")
         f.label:SetPoint("CENTER", 0, 1)
-        f.label:SetFont(ADDON_PATH.."media\\font\\pixelmix.ttf", 6)
+        if sjUI.opt.use_own_font then
+            --f.label:SetFont(sjUI.font, sjUI.font_size)
+        else
+            f.label:SetFontObject(GameFontNormalSmall)
+        end
         f.label:SetTextColor(0.6, 0.6, 0.6, 1)
         f.label:SetText(text[i])
     end
@@ -371,8 +432,6 @@ function sjUI.Micro_Enable()
         f = sjUI.micro_buttons[i]
         f:SetParent(UIParent)
         f:ClearAllPoints()
-        f:SetWidth(77.5)
-        f:SetHeight(16)
         if i < 5 then
             f:SetPoint("BOTTOMLEFT", sjUI_Left, "TOPLEFT", (i-1)*(77.5+2), 2)
         else
@@ -408,14 +467,6 @@ function sjUI.Bar_Init()
     }
     sjUI.bar.is_zoom = true
     sjUI.bar.show_all = true
-
-    -- Setup mock mini-map
-    local mmm = CreateFrame("Frame", "MockMiniMap", UIParent)
-    mmm:SetWidth(140)
-    mmm:SetHeight(140)
-    --mmm:SetBackdrop(sjUI.backdrop)
-    mmm:SetBackdropColor(1, 1, 1, 0.75)
-    mmm:SetPoint("BOTTOM", 0, 4)
 
     -- Left container
     local left = CreateFrame("Frame", "sjUI_ButtonsLeft", UIParent)
@@ -568,19 +619,48 @@ function sjUI.Bar_StyleButton(button)
     -- Icon
     button.icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
     button.icon:ClearAllPoints()
-    button.icon:SetPoint("TOPLEFT", 4, -4)
-    button.icon:SetPoint("BOTTOMRIGHT", -4, 4)
+    button.icon:SetPoint("TOPLEFT", 3, -3)
+    button.icon:SetPoint("BOTTOMRIGHT", -3, 3)
     -- Hot key
-    button.hotkey:SetFont(sjUI.font, sjUI.font_size+2, "OUTLINE")
     button.hotkey:ClearAllPoints()
     button.hotkey:SetPoint("TOPRIGHT", -2, -1)
+    if sjUI.opt.use_own_font then
+        button.hotkey:SetFont(sjUI.font, sjUI.font_size+2, "OUTLINE")
+    else
+        local font, size, mono, out, tout = NumberFontNormalSmallGray:GetFont()
+        button.hotkey:SetFont(font, 10, mono, out, tout)
+    end
+    if sjUI.opt.bar_show_hotkey then
+        button.hotkey:Show()
+    else
+        button.hotkey:Hide()
+    end
     -- Count
-    button.count:SetFont(sjUI.font, sjUI.font_size+2, "OUTLINE")
     button.count:ClearAllPoints()
     button.count:SetPoint("BOTTOMRIGHT", -2, 5)
+    if sjUI.opt.use_own_font then
+        button.count:SetFont(sjUI.font, sjUI.font_size+2, "OUTLINE")
+    else
+        local font, size, mono, out, tout = NumberFontNormalSmallGray:GetFont()
+        button.count:SetFont(font, 10, mono, out, tout)
+    end
+    if sjUI.opt.bar_show_count then
+        button.count:Show()
+    else
+        button.count:Hide()
+    end
     -- Macro text
-    button.macro_text:SetFont(sjUI.font, sjUI.font_size+2, "OUTLINE")
-    button.macro_text:Hide()
+    if sjUI.opt.use_own_font then
+        button.macro_text:SetFont(sjUI.font, sjUI.font_size+2, "OUTLINE")
+    else
+        local font, size, mono, out, tout = NumberFontNormalSmallGray:GetFont()
+        button.macro_text:SetFont(font, 10, mono, out, tout)
+    end
+    if sjUI.opt.bar_show_macro then
+        button.macro_text:Show()
+    else
+        button.macro_text:Hide()
+    end
     -- Normal
     button.normal:SetTexture(nil)
     -- Pushed
@@ -601,7 +681,7 @@ end
 
 function sjUI.ActionButton_Update()
     sjUI.hooks["ActionButton_Update"](arg1)
-    sjUI:Bar_Update()
+    sjUI.Bar_Update()
 end
 
 -------------------------------------------------------------------------------
