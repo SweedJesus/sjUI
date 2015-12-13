@@ -627,8 +627,8 @@ function sjUI.Bar_StyleButton(button)
     if sjUI.opt.use_own_font then
         button.hotkey:SetFont(sjUI.font, sjUI.font_size+2, "OUTLINE")
     else
-        local font, size, mono, out, tout = NumberFontNormalSmallGray:GetFont()
-        button.hotkey:SetFont(font, 10, mono, out, tout)
+        --local font, size, mono, out, tout = NumberFontNormalSmallGray:GetFont()
+        --button.hotkey:SetFont(font, 10, mono, out, tout)
     end
     if sjUI.opt.bar_show_hotkey then
         button.hotkey:Show()
@@ -637,12 +637,13 @@ function sjUI.Bar_StyleButton(button)
     end
     -- Count
     button.count:ClearAllPoints()
-    button.count:SetPoint("BOTTOMRIGHT", -2, 5)
+    --button.count:SetPoint("BOTTOMRIGHT", -2, 5)
+    button.count:SetPoint("CENTER", 0, 0)
     if sjUI.opt.use_own_font then
         button.count:SetFont(sjUI.font, sjUI.font_size+2, "OUTLINE")
     else
-        local font, size, mono, out, tout = NumberFontNormalSmallGray:GetFont()
-        button.count:SetFont(font, 10, mono, out, tout)
+        --local font, size, mono, out, tout = NumberFontNormalSmallGray:GetFont()
+        --button.count:SetFont(font, 10, mono, out, tout)
     end
     if sjUI.opt.bar_show_count then
         button.count:Show()
@@ -653,8 +654,8 @@ function sjUI.Bar_StyleButton(button)
     if sjUI.opt.use_own_font then
         button.macro_text:SetFont(sjUI.font, sjUI.font_size+2, "OUTLINE")
     else
-        local font, size, mono, out, tout = NumberFontNormalSmallGray:GetFont()
-        button.macro_text:SetFont(font, 10, mono, out, tout)
+        --local font, size, mono, out, tout = NumberFontNormalSmallGray:GetFont()
+        --button.macro_text:SetFont(font, 10, mono, out, tout)
     end
     if sjUI.opt.bar_show_macro then
         button.macro_text:Show()
