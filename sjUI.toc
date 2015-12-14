@@ -1,7 +1,7 @@
 ## Interface: 11200
 ## Title: |cffffff00s|r|cff007fffj|rUI |cff7fff7f-Ace2-|r |cffff00001.12|r
-## Notes: 
-## Author: 
+## Author: SweedJesus (Miraculin @ Nostalrius)
+## X-Website: https://sweedjesus.github.io/my-addons/
 ## SavedVariables: sjUI_DB
 ## OptionalDeps: 
 
