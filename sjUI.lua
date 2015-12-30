@@ -6,8 +6,7 @@ sjUI = AceLibrary("AceAddon-2.0"):new(
 "AceDebug-2.0",
 "AceDB-2.0",
 "AceEvent-2.0",
-"AceHook-2.1",
-"AceModuleCore-2.0")
+"AceHook-2.1")
 
 local ADDON_PATH = "Interface\\AddOns\\sjUI\\"
 local IMG_PATH = ADDON_PATH.."media\\img\\"
@@ -49,6 +48,18 @@ function sjUI:OnInitialize()
     self:RegisterChatCommand({ "/sjUI" }, {
         type = "group",
         args = {
+            use_own_font = {
+                name = "Use own font",
+                desc = "Use custom font in place of system fonts",
+                type = "toggle",
+                get = function()
+                    return self.opt.use_own_font
+                end,
+                set = function(set)
+                    self.opt.use_own_font = set
+                    self:UpdateFonts()
+                end
+            },
             bar = {
                 name = "Bar",
                 desc = "Action bar configuration options",
@@ -95,11 +106,11 @@ function sjUI:OnInitialize()
         }
     })
 
-    self.InitComponents()
-    self.Map_Init()
-    self.Right_Init()
-    self.Bar_Init()
-    self.Micro_Init()
+    self:InitComponents()
+    self:Map_Init()
+    self:Right_Init()
+    self:Bar_Init()
+    self:Micro_Init()
 end
 
 function sjUI:OnEnable()
@@ -108,12 +119,11 @@ function sjUI:OnEnable()
 end
 
 function sjUI:PLAYER_ENTERING_WORLD()
-    self.Map_Enable()
-    self.Left_Enable()
-    self.Right_Enable()
-    self.Bar_Enable()
-    self.Micro_Enable()
-    self.OtherAddons_Enable()
+    self:Map_Enable()
+    self:Left_Enable()
+    self:Right_Enable()
+    self:Bar_Enable()
+    self:Micro_Enable()
     MainMenuBar:Hide()
 end
 
@@ -142,13 +152,14 @@ function sjUI:InitComponents()
     }
     sjUI.font = ADDON_PATH.."media\\font\\MyriadCondensed.ttf"
     sjUI.font_size = 9
+    sjUI.font_objects = {}
 end
 
 -----------------------------------------------------------------------------------------
 -- Minimap
 -----------------------------------------------------------------------------------------
 
-function sjUI.Map_Init()
+function sjUI:Map_Init()
     sjUI.map = {}
     sjUI.map.mask = IMG_PATH.."SquareMiniMapMask"
 
@@ -167,9 +178,7 @@ function sjUI.Map_Init()
     f:SetBackdrop(sjUI.backdrop)
     f:SetBackdropColor(1, 1, 1, 0.75)
     f = MinimapZoneText
-    if sjUI.opt.use_own_font then
-        f:SetFont(sjUI.font, sjUI.font_size)
-    end
+    --f:SetFont
     f:ClearAllPoints()
     f:SetPoint("CENTER", 0, 1)
 
@@ -248,17 +257,17 @@ function sjUI.Map_Init()
     GameTimeFrame:Hide()
 end
 
-function sjUI.Map_Enable()
+function sjUI:Map_Enable()
 end
 
 -------------------------------------------------------------------------------
 -- Left info bar
 -------------------------------------------------------------------------------
 
-function sjUI.Left_Init()
+function sjUI:Left_Init()
 end
 
-function sjUI.Left_Enable()
+function sjUI:Left_Enable()
     local f
 
     CreateFrame("Frame", "sjUI_Left", UIParent)
@@ -282,7 +291,7 @@ end
 -- Right info bar
 -------------------------------------------------------------------------------
 
-function sjUI.Right_Init()
+function sjUI:Right_Init()
     local r = CreateFrame("Frame", "sjUI_Right", UIParent)
     r:SetFrameStrata("LOW")
     r:SetWidth(316)
@@ -293,6 +302,7 @@ function sjUI.Right_Init()
 
     -- Left: FPS/Latency (reuse performance bar)
     local f = MainMenuBarPerformanceBarFrameButton
+    self.right_performance = f
     f:SetParent(r)
     f:ClearAllPoints()
     f:SetPoint("LEFT", 0, 0)
@@ -301,36 +311,26 @@ function sjUI.Right_Init()
     f:SetHitRectInsets(2, -2, 2, -2)
     f:SetScript("OnUpdate", nil)
     f.label = f:CreateFontString("sjUI_RightCompStatLabel", "LOW")
-    if sjUI.opt.use_own_font then
-        f.label:SetFont(sjUI.font, sjUI.font_size)
-    else
-        f.label:SetFontObject(GameFontNormalSmall)
-    end
+    f.label:SetFontObject(GameFontNormalSmall)
     f.label:SetTextColor(0.6, 0.6, 0.6, 1)
     f.label:SetPoint("LEFT", 7, 0)
 
     -- Center: Time
     f = r:CreateFontString("sjUI_RightTimeLabel", "LOW")
-    if sjUI.opt.use_own_font then
-        f:SetFont(sjUI.font, sjUI.font_size)
-    else
-        f:SetFontObject(GameFontNormalSmall)
-    end
+    self.right_time = f
+    f:SetFontObject(GameFontNormalSmall)
     f:SetTextColor(0.6, 0.6, 0.6, 1)
     f:SetPoint("CENTER", 0, 0)
 
     -- Right: Money
     f = r:CreateFontString("sjUI_RightMoneyLabel", "LOW")
-    if sjUI.opt.use_own_font then
-        f:SetFont(sjUI.font, sjUI.font_size)
-    else
-        f:SetFontObject(GameFontNormalSmall)
-    end
+    self.right_money = f
+    f:SetFontObject(GameFontNormalSmall)
     f:SetTextColor(0.6, 0.6, 0.6, 1)
     f:SetPoint("RIGHT", -7, 0)
 end
 
-function sjUI.Right_Enable()
+function sjUI:Right_Enable()
     sjUI:RegisterEvent("PLAYER_MONEY", "Right_UpdateMoney")
     -- FPS & Latency
     local compstat_update_interval = 2 or PERFORMANCEBAR_UPDATE_INTERVAL
@@ -384,7 +384,7 @@ end
 -- Micro buttons
 -------------------------------------------------------------------------------
 
-function sjUI.Micro_Init()
+function sjUI:Micro_Init()
     sjUI.micro_buttons = {
         CharacterMicroButton, SpellbookMicroButton, TalentMicroButton,
         QuestLogMicroButton, SocialsMicroButton, WorldMapMicroButton,
@@ -413,17 +413,14 @@ function sjUI.Micro_Init()
         -- Label
         f.label = f:CreateFontString(f:GetName().."Label", "OVERLAY")
         f.label:SetPoint("CENTER", 0, 1)
-        if sjUI.opt.use_own_font then
-            --f.label:SetFont(sjUI.font, sjUI.font_size)
-        else
-            f.label:SetFontObject(GameFontNormalSmall)
-        end
+        tinsert(self.font_objects, f.label)
+        f.label:SetFontObject(GameFontNormalSmall)
         f.label:SetTextColor(0.6, 0.6, 0.6, 1)
         f.label:SetText(text[i])
     end
 end
 
-function sjUI.Micro_Enable()
+function sjUI:Micro_Enable()
     -- Hide character portrait
     MicroButtonPortrait:Hide()
     -- Position buttons
@@ -454,7 +451,7 @@ end
 -- Buttons
 -------------------------------------------------------------------------------
 
-function sjUI.Bar_Init()
+function sjUI:Bar_Init()
     -- Setup tables and values
     sjUI.bar = {}
     sjUI.bar.all_bars= {}
@@ -566,9 +563,10 @@ function sjUI.Bar_Init()
     sjUI:Hook("ActionButton_Update")
 end
 
-function sjUI.Bar_Enable()
+function sjUI:Bar_Enable()
     local button
     -- Position action bar buttons
+    -- Order is defined here
     for i, b in { 1, 2, 4, 3 } do
         for j = 1, 12 do
             button = _G["Bar"..b.."Button"..j]
@@ -594,9 +592,10 @@ function sjUI.Bar_Enable()
         button:ClearAllPoints()
         button:SetPoint("TOP", sjUI_ButtonsPet, "TOP", 0, -(j-1)*36)
     end
-    sjUI:RegisterEvent("PET_BAR_UPDATE", sjUI.Bar_Update)
+    self:RegisterEvent("PET_BAR_UPDATE", sjUI.Bar_Update)
+    self:RegisterEvent("UPDATE_BONUS_ACTIONBAR")
     -- Initial update
-    sjUI.Bar_Update()
+    self.Bar_Update()
 end
 
 function sjUI.Bar_Update()
@@ -624,12 +623,7 @@ function sjUI.Bar_StyleButton(button)
     -- Hot key
     button.hotkey:ClearAllPoints()
     button.hotkey:SetPoint("TOPRIGHT", -2, -1)
-    if sjUI.opt.use_own_font then
-        button.hotkey:SetFont(sjUI.font, sjUI.font_size+2, "OUTLINE")
-    else
-        --local font, size, mono, out, tout = NumberFontNormalSmallGray:GetFont()
-        --button.hotkey:SetFont(font, 10, mono, out, tout)
-    end
+    --button.hotkey:SetFontObject(NumberFontNormalSmallGray)
     if sjUI.opt.bar_show_hotkey then
         button.hotkey:Show()
     else
@@ -639,24 +633,14 @@ function sjUI.Bar_StyleButton(button)
     button.count:ClearAllPoints()
     --button.count:SetPoint("BOTTOMRIGHT", -2, 5)
     button.count:SetPoint("CENTER", 0, 0)
-    if sjUI.opt.use_own_font then
-        button.count:SetFont(sjUI.font, sjUI.font_size+2, "OUTLINE")
-    else
-        --local font, size, mono, out, tout = NumberFontNormalSmallGray:GetFont()
-        --button.count:SetFont(font, 10, mono, out, tout)
-    end
+    --button.count:SetFontObject(NumberFontNormalSmall)
     if sjUI.opt.bar_show_count then
         button.count:Show()
     else
         button.count:Hide()
     end
     -- Macro text
-    if sjUI.opt.use_own_font then
-        button.macro_text:SetFont(sjUI.font, sjUI.font_size+2, "OUTLINE")
-    else
-        --local font, size, mono, out, tout = NumberFontNormalSmallGray:GetFont()
-        --button.macro_text:SetFont(font, 10, mono, out, tout)
-    end
+    --button.macro_text:SetFontObject(GameFontHighlightSmall)
     if sjUI.opt.bar_show_macro then
         button.macro_text:Show()
     else
@@ -685,30 +669,22 @@ function sjUI.ActionButton_Update()
     sjUI.Bar_Update()
 end
 
--------------------------------------------------------------------------------
--- Other addons
--------------------------------------------------------------------------------
-
-function sjUI.OtherAddons_Init()
+function sjUI:Bar_GetBonusActionBarPage()
+    local x = GetBonusBarOffset()
+    if x == 3 then
+        return 9
+    elseif x == 2 then
+        return 8
+    elseif x == 1 then
+        return 7
+    else
+        return 1
+    end
 end
 
-function sjUI.OtherAddons_Enable()
-    -- SW Stats
-    --local f = SW_IconFrame_Button
-    --local icon, border = f:GetRegions()
-    --icon:Hide()
-    --border:Hide()
-    --f = SW_IconFrame
-    --f:SetBackdrop(sjUI.backdrop)
-    --f:SetBackdropColor(1, 1, 1, 0.75)
-    --f:ClearAllPoints()
-    --f:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 4, 22)
-    --f:SetWidth(30)
-    --f:SetHeight(16)
-    --f.label = f:CreateFontString(nil)
-    --f.label:SetPoint("CENTER", 0, 1)
-    --f.label:SetFont(sjUI.font, sjUI.font_size)
-    --f.label:SetTextColor(0.6, 0.6, 0.6, 1)
-    --f.label:SetText("SWS")
+function sjUI:UPDATE_BONUS_ACTIONBAR()
+    BonusActionBarFrame:Hide()
+    CURRENT_ACTIONBAR_PAGE = self:Bar_GetBonusActionBarPage()
+    ChangeActionBarPage()
 end
 
