@@ -22,6 +22,34 @@ local money_formatter = "%u|cffffd700g|r %u|cffc7c7cfs|r %u|cffeda55fc|r"
 
 local BAR1, BAR2, BAR3, BAR4, BAR5, PET_BAR = 1, 2, 3, 4, 5, 6
 
+-- https://en.wikipedia.org/wiki/HSL_and_HSV
+-- @param h Hue (0-360)
+-- @param s Saturation (0-1)
+-- @param l Lightness (0-1)
+local function HSV(h, s, l)
+    h, s, l = mod(abs(h), 360) / 60, abs(s), abs(l)
+    if s > 1 then s = mod(s, 1) end
+    if l > 1 then l = mod(l, 1) end
+    local c = (1 - abs(2 * l - 1)) * s
+    local x = c * (1 - abs(mod(h, 2) - 1))
+    local r, g, b
+    if h < 1 then
+        r, g, b = c, x, 0
+    elseif h < 2 then
+        r, g, b = x, c, 0
+    elseif h < 3 then
+        r, g, b = 0, c, x
+    elseif h < 4 then
+        r, g, b = 0, x, c
+    elseif h < 5 then
+        r, g, b = x, 0, c
+    else
+        r, g, b = c, 0, x
+    end
+    local m = l - c / 2
+    return r + m, g + m, b + m
+end
+
 local function MakeMovable(frame)
     frame:EnableMouse(true)
     frame:RegisterForDrag("LeftButton")
@@ -45,7 +73,7 @@ function sjUI:OnInitialize()
     })
     self.opt = self.db.profile
 
-    self:RegisterChatCommand({ "/sjUI" }, {
+    self.options = {
         type = "group",
         args = {
             use_own_font = {
@@ -104,10 +132,13 @@ function sjUI:OnInitialize()
                 }
             }
         }
-    })
+    }
+
+    self:RegisterChatCommand({ "/sjUI" }, self.options)
 
     self:InitComponents()
     self:Map_Init()
+    self:Left_Init()
     self:Right_Init()
     self:Bar_Init()
     self:Micro_Init()
@@ -115,15 +146,17 @@ end
 
 function sjUI:OnEnable()
     self:SetDebugging(self.opt.debug)
-    self:RegisterEvent("PLAYER_ENTERING_WORLD")
-end
 
-function sjUI:PLAYER_ENTERING_WORLD()
     self:Map_Enable()
     self:Left_Enable()
     self:Right_Enable()
     self:Bar_Enable()
     self:Micro_Enable()
+
+    self:RegisterEvent("PLAYER_ENTERING_WORLD")
+end
+
+function sjUI:PLAYER_ENTERING_WORLD()
     MainMenuBar:Hide()
 end
 
@@ -265,26 +298,70 @@ end
 -------------------------------------------------------------------------------
 
 function sjUI:Left_Init()
+    local l = CreateFrame("Frame", "sjUI_Left", UIParent)
+    l:SetFrameStrata("LOW")
+    l:SetWidth(316)
+    l:SetHeight(14)
+    l:ClearAllPoints()
+    l:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 4, 4)
+    l:SetBackdrop(sjUI.backdrop)
+    l:SetBackdropColor(1, 1, 1, 0.75)
+    l:EnableMouse(true)
+    l:RegisterForDrag("LeftButton")
+    l:SetMovable(true)
+
+    -- Left: Mail
+    -- Center: XP
+    local f = l:CreateFontString("sjUI_LeftXPLabel", "LOW")
+    f:SetFontObject(GameFontNormalSmall)
+    f:SetTextColor(0.6, 0.6, 0.6, 1)
+    f:SetPoint("CENTER", 0, 0)
+    f:SetWidth(300)
+    f:SetHeight(14)
+    -- Right: Bag slots
+    self.options.args.left = {
+        name = "Left",
+        desc = "Left info bar options.",
+        type = "group",
+        args = {
+            useRepForXP = {
+                name = "Use Reputation for XP",
+                description = "Toggleing using reputation tracking as the experience readout.",
+                type = "toggle",
+                get = function()
+                    return self.opt.useRepForXP
+                end,
+                set = function(set)
+                    if self.opt.useRepForXP ~= set then
+                        self.opt.useRepForXP = set
+                        self:Left_UpdateXP()
+                    end
+                end
+            }
+        }
+    }
 end
 
 function sjUI:Left_Enable()
-    local f
+    self:Left_UpdateXP()
 
-    CreateFrame("Frame", "sjUI_Left", UIParent)
-    sjUI_Left:SetFrameStrata("LOW")
-    sjUI_Left:SetWidth(316)
-    sjUI_Left:SetHeight(14)
-    sjUI_Left:ClearAllPoints()
-    sjUI_Left:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 4, 4)
-    sjUI_Left:SetBackdrop(sjUI.backdrop)
-    sjUI_Left:SetBackdropColor(1, 1, 1, 0.75)
-    sjUI_Left:EnableMouse(true)
-    sjUI_Left:RegisterForDrag("LeftButton")
-    sjUI_Left:SetMovable(true)
+    self:RegisterEvent("PLAYER_XP_UPDATE", sjUI.Left_UpdateXP)
+    self:RegisterEvent("CHAT_MSG_COMBAT_FACTION_CHANGE", sjUI.Left_UpdateXP)
+end
 
-    -- Left: Mail
-    -- Center: ?
-    -- Right: Bag slots
+function sjUI:Left_UpdateXP()
+    if not sjUI.opt.useRepForXP then
+        sjUI_LeftXPLabel:SetText(format("XP %s/%s", UnitXP("player"), UnitXPMax("player")))
+    else
+        local faction, reaction, _, max, cur = GetWatchedFactionInfo()
+        if reaction then
+            -- 1 (hated) = 0 (red), 8 (exalted) = 240 (blue)
+            local r, g, b = HSV((reaction-1)*30, 1, 0.5)
+            sjUI_LeftXPLabel:SetText(format("|cff%02x%02x%02x%s|r %d/%d",
+            r*255, g*255, b*255, faction, cur, max))
+        else
+        end
+    end
 end
 
 -------------------------------------------------------------------------------
