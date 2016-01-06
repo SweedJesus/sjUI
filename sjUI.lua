@@ -69,7 +69,10 @@ function sjUI:OnInitialize()
         use_own_font = false,
         button_show_hotkey = true,
         button_show_count = true,
-        button_show_macro = false
+        button_show_macro = false,
+
+        -- Left
+        xpDisplayType = 0
     })
     self.opt = self.db.profile
 
@@ -298,6 +301,7 @@ end
 -------------------------------------------------------------------------------
 
 function sjUI:Left_Init()
+    local f
     local l = CreateFrame("Frame", "sjUI_Left", UIParent)
     l:SetFrameStrata("LOW")
     l:SetWidth(316)
@@ -312,13 +316,21 @@ function sjUI:Left_Init()
 
     -- Left: Mail
     -- Center: XP
-    local f = l:CreateFontString("sjUI_LeftXPLabel", "LOW")
-    f:SetFontObject(GameFontNormalSmall)
-    f:SetTextColor(0.6, 0.6, 0.6, 1)
+    f = CreateFrame("Frame", "sjUI_LeftXPFrame", l)
     f:SetPoint("CENTER", 0, 0)
     f:SetWidth(300)
     f:SetHeight(14)
+    f:EnableMouse(true)
+    f:SetScript("OnMouseDown", function()
+        sjUI.opt.xpDisplayType = mod(sjUI.opt.xpDisplayType+1, 3)
+        sjUI:Left_UpdateXP()
+    end)
+    f = f:CreateFontString("sjUI_LeftXPLabel", "LOW")
+    f:SetFontObject(GameFontNormalSmall)
+    f:SetTextColor(0.6, 0.6, 0.6, 1)
+    f:SetAllPoints()
     -- Right: Bag slots
+
     self.options.args.left = {
         name = "Left",
         desc = "Left info bar options.",
@@ -351,15 +363,27 @@ end
 
 function sjUI:Left_UpdateXP()
     if not sjUI.opt.useRepForXP then
-        sjUI_LeftXPLabel:SetText(format("XP %s/%s", UnitXP("player"), UnitXPMax("player")))
+        local i = sjUI.opt.xpDisplayType
+        local current, max = UnitXP("player"), UnitXPMax("player")
+        if i == 0 then
+            sjUI_LeftXPLabel:SetText(format("XP %.1f/%.1f", current, max))
+        elseif i == 1 then
+            sjUI_LeftXPLabel:SetText(format("XP %.2f%%", current, max))
+        elseif i == 2 then
+            sjUI_LeftXPLabel:SetText(format("XP %d/20 Bars", floor(current/max*20)))
+        end
+        --local c, m = UnitXP("player"), UnitXPMax("player")
+        --local f = c/m
+        --sjUI_LeftXPLabel:SetText(format("%.1f/%.1f · %.1f%% · %d/20", c/1000, m/1000, f, floor(f*20)))
     else
         local faction, reaction, _, max, cur = GetWatchedFactionInfo()
-        if reaction then
+        if faction and reaction then
             -- 1 (hated) = 0 (red), 8 (exalted) = 240 (blue)
             local r, g, b = HSV((reaction-1)*30, 1, 0.5)
             sjUI_LeftXPLabel:SetText(format("|cff%02x%02x%02x%s|r %d/%d",
             r*255, g*255, b*255, faction, cur, max))
         else
+            sjUI_LeftXPLabel:SetText("")
         end
     end
 end
