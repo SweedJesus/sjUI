@@ -16,17 +16,22 @@ local WHITE, RED, YELLOW, GREEN = "ffffff", "ff0000", "ffff00", "00ff00"
 local max_refresh_rate = { GetRefreshRates() }
 max_refresh_rate = max_refresh_rate[getn(max_refresh_rate)]
 
+-- Middle dot digraph: ".M"
 local compstat_formatter = "|cff%s%u|r fps · |cff%s%u|r ms"
-local time_formatter = "EAST %d:%d · FRANCE %d:%d"
+local time_formatter = "LOCAL %d:%d · SERVER %d:%d"
 local money_formatter = "%u|cffffd700g|r %u|cffc7c7cfs|r %u|cffeda55fc|r"
 
 local BAR1, BAR2, BAR3, BAR4, BAR5, PET_BAR = 1, 2, 3, 4, 5, 6
 
--- https://en.wikipedia.org/wiki/HSL_and_HSV
+-- ----------------------------------------------------------------------------
+-- Utility functions
+-- ----------------------------------------------------------------------------
+
+-- https://en.wikipedia.org/wiki/HSL_and_HSL
 -- @param h Hue (0-360)
 -- @param s Saturation (0-1)
 -- @param l Lightness (0-1)
-local function HSV(h, s, l)
+local function HSL(h, s, l)
     h, s, l = mod(abs(h), 360) / 60, abs(s), abs(l)
     if s > 1 then s = mod(s, 1) end
     if l > 1 then l = mod(l, 1) end
@@ -62,84 +67,231 @@ local function MakeMovable(frame)
     end)
 end
 
-function sjUI:OnInitialize()
-    self:RegisterDB("sjUI_DB")
-    self:RegisterDefaults("profile", {
-        debug = true,
-        use_own_font = false,
-        button_show_hotkey = true,
-        button_show_count = true,
-        button_show_macro = false,
+local function SetScript(key, rawfunc)
+    local func, e = loadstring(rawfunc)
+    if func then
+        setfenv(func, sjUI.env[key])
+        sjUI[key] = func
+        sjUI.opt[key] = rawfunc
+    else
+        sjUI:Print('Error in parsing %q! |cffff0000Error|r: %q', rawfunc, e)
+    end
+end
 
-        -- Left
-        xpDisplayType = 0
-    })
-    self.opt = self.db.profile
+local function OptPrint(value)
+    return function()
+        sjUI:Print(value)
+    end
+end
 
-    self.options = {
-        type = "group",
-        args = {
-            use_own_font = {
-                name = "Use own font",
-                desc = "Use custom font in place of system fonts",
-                type = "toggle",
-                get = function()
-                    return self.opt.use_own_font
-                end,
-                set = function(set)
-                    self.opt.use_own_font = set
-                    self:UpdateFonts()
-                end
-            },
-            bar = {
-                name = "Bar",
-                desc = "Action bar configuration options",
-                type = "group",
-                args = {
-                    hotkey = {
-                        name = "Show hotkey",
-                        desc = "Show action button hotkey labels",
-                        type = "toggle",
-                        get = function()
-                            return sjUI.opt.bar_show_hotkey
-                        end,
-                        set = function(set)
-                            sjUI.opt.bar_show_hotkey = set
-                            sjUI.Bar_Update()
-                        end
-                    },
-                    count = {
-                        name = "Show count",
-                        desc = "Show action button count labels",
-                        type = "toggle",
-                        get = function()
-                            return sjUI.opt.bar_show_count
-                        end,
-                        set = function(set)
-                            sjUI.opt.bar_show_count = set
-                            sjUI.Bar_Update()
-                        end
-                    },
-                    macro = {
-                        name = "Show macro names",
-                        desc = "Show action button macro name labels",
-                        type = "toggle",
-                        get = function()
-                            return sjUI.opt.bar_show_macro
-                        end,
-                        set = function(set)
-                            sjUI.opt.bar_show_macro = set
-                            sjUI.Bar_Update()
-                        end
-                    }
+local function OptGenericGet(key)
+    return function()
+        return sjUI.opt[key]
+    end
+end
+
+local function OptGenericSet(key)
+    return function(set)
+        if set ~= sjUI.opt[key] then
+            sjUI.opt[key] = set
+        end
+    end
+end
+
+local function OptColorGet(key)
+    return function()
+        return
+        sjUI.opt[key.."R"],
+        sjUI.opt[key.."G"],
+        sjUI.opt[key.."B"],
+        sjUI.opt[key.."A"]
+    end
+end
+
+local function OptColorSet(key)
+    return function(r, g, b, a)
+        if sjUI.opt[key.."R"] ~= r or
+            sjUI.opt[key.."G"] ~= g or
+            sjUI.opt[key.."B"] ~= b or
+            sjUI.opt[key.."A"] ~= a then
+            sjUI.opt[key.."R"] = r
+            sjUI.opt[key.."G"] = g
+            sjUI.opt[key.."B"] = b
+            sjUI.opt[key.."A"] = a
+        end
+    end
+end
+
+local function OptScriptSet(key)
+    return function(rawfunc)
+        SetScript(key, rawfunc)
+    end
+end
+
+-- ----------------------------------------------------------------------------
+-- Internals
+-- ----------------------------------------------------------------------------
+
+sjUI.defaults = {
+    debug = true,
+    useOwnFont = false,
+    button_show_hotkey = true,
+    button_show_count = true,
+    button_show_macro = false,
+
+    -- Left
+    scriptLeftXP = "return ':^)'"
+}
+
+sjUI.options = {
+    type = "group",
+    args = {
+        useOwnFont = {
+            name = "Use own font",
+            desc = "Use custom font in place of system fonts",
+            type = "toggle",
+            get = function()
+                return sjUI.opt.useOwnFont
+            end,
+            set = function(set)
+                sjUI.opt.useOwnFont = set
+                sjUI:UpdateFonts()
+            end
+        },
+        bar = {
+            name = "Bar",
+            desc = "Action bar configuration options",
+            type = "group",
+            args = {
+                hotkey = {
+                    name = "Show hotkey",
+                    desc = "Show action button hotkey labels",
+                    type = "toggle",
+                    get = function()
+                        return sjUI.opt.bar_show_hotkey
+                    end,
+                    set = function(set)
+                        sjUI.opt.bar_show_hotkey = set
+                        sjUI.Bar_Update()
+                    end
+                },
+                count = {
+                    name = "Show count",
+                    desc = "Show action button count labels",
+                    type = "toggle",
+                    get = function()
+                        return sjUI.opt.bar_show_count
+                    end,
+                    set = function(set)
+                        sjUI.opt.bar_show_count = set
+                        sjUI.Bar_Update()
+                    end
+                },
+                macro = {
+                    name = "Show macro names",
+                    desc = "Show action button macro name labels",
+                    type = "toggle",
+                    get = function()
+                        return sjUI.opt.bar_show_macro
+                    end,
+                    set = function(set)
+                        sjUI.opt.bar_show_macro = set
+                        sjUI.Bar_Update()
+                    end
                 }
             }
+        },
+        scripts = {
+            name = "Scripts",
+            desc = "Configure display scripts.",
+            type = "group",
+            args = {
+                scriptLeftXP = {
+                    order = 1,
+                    name = "XP",
+                    desc = "Set the left XP label display script.",
+                    type = "text",
+                    usage = "<valid Lua function body>",
+                    get = OptGenericGet("scriptLeftXP"),
+                    set = function(set)
+                        local func, e = loadstring(set)
+                        if func then
+                            setfenv(func, sjUI.env.scriptLeftXP)
+                            sjUI.scriptLeftXP = func
+                            sjUI.opt.scriptLeftXP = set
+                            sjUI.Left_UpdateXP()
+                        else
+                            sjUI:Print('Error in parsing %q! |cffff0000Error|r: %q', set, e)
+                        end
+                    end
+                },
+                scriptLeftXPPreset = {
+                    order = 2,
+                    name = "XP preset 1",
+                    desc = "Character based graphical bar.",
+                    type = "execute",
+                    func = function()
+                        SetScript("scriptLeftXP", [[local faction, reaction, min, max, cur = GetWatchedFactionInfo() if faction and reaction then local bars = (cur-min)/(max-min)*20 local r1, g1, b1 = HSL((reaction-1)*30, 1, 0.5) local r2, g2, b2 = HSL((reaction-1)*30, 0.5, 0.15) return string.format("%3.1fk |cff%02x%02x%02x%s|r|cff%02x%02x%02x%s|r %3.1fk", (cur-min)/1000, 255*r1, 255*g1, 255*b1, string.rep("I", bars), 255*r2, 255*g2, 255*b2, string.rep("I", 20-bars), (max-min)/1000) else local cur, max = UnitXP("player"), UnitXPMax("player") local bars = cur/max*20 local r1, g1, b1 = HSL(270, 1, 0.5) local r2, g2, b2 = HSL(270, 0.5, 0.15) return string.format("%3.1fk |cff%02x%02x%02x%s|r|cff%02x%02x%02x%s|r %3.1fk", cur/1000, 255*r1, 255*g1, 255*b1, string.rep("I", bars), 255*r2, 255*g2, 255*b2, string.rep("I", 20-bars), max/1000) end]])
+                        sjUI.Left_UpdateXP()
+                    end
+                }
+            }
+        },
+        reset = {
+            name = "Reset",
+            desc = "Reset all saved variables to default.",
+            type = "execute",
+            func = function()
+                for k in sjUI.defaults do
+                    sjUI.opt[k] = sjUI.defaults[k]
+                end
+            end
         }
     }
+}
+
+local IMG = ADDON_PATH.."media\\img\\"
+local background = IMG.."background"
+local border     = IMG.."border-small"
+
+sjUI.backdrop = {
+    bgFile = background,
+    tile = true,
+    tileSize = 8,
+    edgeFile = border,
+    edgeSize = 8,
+    insets = { left = 0, right = 0, top = 0, bottom = 0 }
+}
+
+sjUI.background = {
+    bgFile = background,
+    tile = true,
+    tileSize = 8,
+}
+
+sjUI.border = {
+    edgeFile = border,
+    edgeSize = 8,
+    insets = { left = 0, right = 0, top = 0, bottom = 0 }
+}
+
+sjUI.font = ADDON_PATH.."media\\font\\MyriadCondensed.ttf"
+sjUI.font_size = 9
+sjUI.font_objects = {}
+
+-- ----------------------------------------------------------------------------
+-- Event handlers
+-- ----------------------------------------------------------------------------
+
+function sjUI:OnInitialize()
+    self:RegisterDB("sjUI_DB")
+    self:RegisterDefaults("profile", self.defaults)
+    self.opt = self.db.profile
+
+    self.env = {}
 
     self:RegisterChatCommand({ "/sjUI" }, self.options)
 
-    self:InitComponents()
     self:Map_Init()
     self:Left_Init()
     self:Right_Init()
@@ -163,37 +315,9 @@ function sjUI:PLAYER_ENTERING_WORLD()
     MainMenuBar:Hide()
 end
 
-function sjUI:InitComponents()
-    local IMG = ADDON_PATH.."media\\img\\"
-    local background = IMG.."background"
-    local border     = IMG.."border-small"
-
-    sjUI.backdrop = {
-        bgFile = background,
-        tile = true,
-        tileSize = 8,
-        edgeFile = border,
-        edgeSize = 8,
-        insets = { left = 0, right = 0, top = 0, bottom = 0 }
-    }
-    sjUI.background = {
-        bgFile = background,
-        tile = true,
-        tileSize = 8,
-    }
-    sjUI.border = {
-        edgeFile = border,
-        edgeSize = 8,
-        insets = { left = 0, right = 0, top = 0, bottom = 0 }
-    }
-    sjUI.font = ADDON_PATH.."media\\font\\MyriadCondensed.ttf"
-    sjUI.font_size = 9
-    sjUI.font_objects = {}
-end
-
------------------------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------
 -- Minimap
------------------------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------
 
 function sjUI:Map_Init()
     sjUI.map = {}
@@ -327,65 +451,39 @@ function sjUI:Left_Init()
     end)
     f = f:CreateFontString("sjUI_LeftXPLabel", "LOW")
     f:SetFontObject(GameFontNormalSmall)
+    f:SetJustifyH("CENTER")
     f:SetTextColor(0.6, 0.6, 0.6, 1)
     f:SetAllPoints()
     -- Right: Bag slots
 
-    self.options.args.left = {
-        name = "Left",
-        desc = "Left info bar options.",
-        type = "group",
-        args = {
-            useRepForXP = {
-                name = "Use Reputation for XP",
-                description = "Toggleing using reputation tracking as the experience readout.",
-                type = "toggle",
-                get = function()
-                    return self.opt.useRepForXP
-                end,
-                set = function(set)
-                    if self.opt.useRepForXP ~= set then
-                        self.opt.useRepForXP = set
-                        self:Left_UpdateXP()
-                    end
-                end
-            }
-        }
+    self.env.scriptLeftXP = {
+        math = math,
+        string = string,
+        UnitXP = UnitXP,
+        UnitXPMax = UnitXPMax,
+        GetXPExhaustion = GetXPExhaustion,
+        GetWatchedFactionInfo = GetWatchedFactionInfo,
+        HSL = HSL
     }
 end
 
 function sjUI:Left_Enable()
-    self:Left_UpdateXP()
-
     self:RegisterEvent("PLAYER_XP_UPDATE", sjUI.Left_UpdateXP)
+    self:RegisterEvent("UPDATE_FACTION", sjUI.Left_UpdateXP)
     self:RegisterEvent("CHAT_MSG_COMBAT_FACTION_CHANGE", sjUI.Left_UpdateXP)
+
+    -- Initialize scripts
+    local func = loadstring(self.opt.scriptLeftXP)
+    if func then
+        setfenv(func, self.env.scriptLeftXP)
+        self.scriptLeftXP = func
+    end
+
+    --self.Left_UpdateXP()
 end
 
-function sjUI:Left_UpdateXP()
-    if not sjUI.opt.useRepForXP then
-        local i = sjUI.opt.xpDisplayType
-        local current, max = UnitXP("player"), UnitXPMax("player")
-        if i == 0 then
-            sjUI_LeftXPLabel:SetText(format("XP %.1f/%.1f", current, max))
-        elseif i == 1 then
-            sjUI_LeftXPLabel:SetText(format("XP %.2f%%", current, max))
-        elseif i == 2 then
-            sjUI_LeftXPLabel:SetText(format("XP %d/20 Bars", floor(current/max*20)))
-        end
-        --local c, m = UnitXP("player"), UnitXPMax("player")
-        --local f = c/m
-        --sjUI_LeftXPLabel:SetText(format("%.1f/%.1f · %.1f%% · %d/20", c/1000, m/1000, f, floor(f*20)))
-    else
-        local faction, reaction, _, max, cur = GetWatchedFactionInfo()
-        if faction and reaction then
-            -- 1 (hated) = 0 (red), 8 (exalted) = 240 (blue)
-            local r, g, b = HSV((reaction-1)*30, 1, 0.5)
-            sjUI_LeftXPLabel:SetText(format("|cff%02x%02x%02x%s|r %d/%d",
-            r*255, g*255, b*255, faction, cur, max))
-        else
-            sjUI_LeftXPLabel:SetText("")
-        end
-    end
+function sjUI.Left_UpdateXP()
+    sjUI_LeftXPLabel:SetText(sjUI.scriptLeftXP())
 end
 
 -------------------------------------------------------------------------------
@@ -467,10 +565,9 @@ function sjUI.Right_UpdateCompStat()
 end
 
 function sjUI.Right_UpdateTime()
-    local lt_h, lt_m = date("%H"), date("%M")
-    local st_h, st_m = date("!%H"), date("!%M")
-    -- Middle dot digraph: ".M"
-    sjUI_RightTimeLabel:SetText(format(time_formatter, lt_h+3, lt_m, st_h, st_m))
+    local localH, localM = date("%H"), date("%M")
+    local serverH, serverM = date("!%H"), date("!%M")
+    sjUI_RightTimeLabel:SetText(format(time_formatter, localH, localM, serverH, serverM))
 end
 
 function sjUI.Right_UpdateMoney()
