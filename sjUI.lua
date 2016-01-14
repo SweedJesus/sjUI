@@ -31,7 +31,7 @@ local BAR1, BAR2, BAR3, BAR4, BAR5, PET_BAR = 1, 2, 3, 4, 5, 6
 -- @param h Hue (0-360)
 -- @param s Saturation (0-1)
 -- @param l Lightness (0-1)
-local function HSL(h, s, l)
+function HSL(h, s, l)
     h, s, l = mod(abs(h), 360) / 60, abs(s), abs(l)
     if s > 1 then s = mod(s, 1) end
     if l > 1 then l = mod(l, 1) end
@@ -201,42 +201,6 @@ sjUI.options = {
                 }
             }
         },
-        scripts = {
-            name = "Scripts",
-            desc = "Configure display scripts.",
-            type = "group",
-            args = {
-                scriptLeftXP = {
-                    order = 1,
-                    name = "XP",
-                    desc = "Set the left XP label display script.",
-                    type = "text",
-                    usage = "<valid Lua function body>",
-                    get = OptGenericGet("scriptLeftXP"),
-                    set = function(set)
-                        local func, e = loadstring(set)
-                        if func then
-                            setfenv(func, sjUI.env.scriptLeftXP)
-                            sjUI.scriptLeftXP = func
-                            sjUI.opt.scriptLeftXP = set
-                            sjUI.Left_UpdateXP()
-                        else
-                            sjUI:Print('Error in parsing %q! |cffff0000Error|r: %q', set, e)
-                        end
-                    end
-                },
-                scriptLeftXPPreset = {
-                    order = 2,
-                    name = "XP preset 1",
-                    desc = "Character based graphical bar.",
-                    type = "execute",
-                    func = function()
-                        SetScript("scriptLeftXP", [[local faction, reaction, min, max, cur = GetWatchedFactionInfo() if faction and reaction then local bars = (cur-min)/(max-min)*20 local r1, g1, b1 = HSL((reaction-1)*30, 1, 0.5) local r2, g2, b2 = HSL((reaction-1)*30, 0.5, 0.15) return string.format("%3.1fk |cff%02x%02x%02x%s|r|cff%02x%02x%02x%s|r %3.1fk", (cur-min)/1000, 255*r1, 255*g1, 255*b1, string.rep("I", bars), 255*r2, 255*g2, 255*b2, string.rep("I", 20-bars), (max-min)/1000) else local cur, max = UnitXP("player"), UnitXPMax("player") local bars = cur/max*20 local r1, g1, b1 = HSL(270, 1, 0.5) local r2, g2, b2 = HSL(270, 0.5, 0.15) return string.format("%3.1fk |cff%02x%02x%02x%s|r|cff%02x%02x%02x%s|r %3.1fk", cur/1000, 255*r1, 255*g1, 255*b1, string.rep("I", bars), 255*r2, 255*g2, 255*b2, string.rep("I", 20-bars), max/1000) end]])
-                        sjUI.Left_UpdateXP()
-                    end
-                }
-            }
-        },
         reset = {
             name = "Reset",
             desc = "Reset all saved variables to default.",
@@ -313,6 +277,8 @@ end
 
 function sjUI:PLAYER_ENTERING_WORLD()
     MainMenuBar:Hide()
+
+    self:Micro_Enable()
 end
 
 -- ----------------------------------------------------------------------------
@@ -445,26 +411,16 @@ function sjUI:Left_Init()
     f:SetWidth(300)
     f:SetHeight(14)
     f:EnableMouse(true)
-    f:SetScript("OnMouseDown", function()
-        sjUI.opt.xpDisplayType = mod(sjUI.opt.xpDisplayType+1, 3)
-        sjUI:Left_UpdateXP()
-    end)
+    --f:SetScript("OnMouseDown", function()
+        --sjUI.opt.xpDisplayType = mod(sjUI.opt.xpDisplayType+1, 3)
+        --sjUI:Left_UpdateXP()
+    --end)
     f = f:CreateFontString("sjUI_LeftXPLabel", "LOW")
     f:SetFontObject(GameFontNormalSmall)
     f:SetJustifyH("CENTER")
     f:SetTextColor(0.6, 0.6, 0.6, 1)
     f:SetAllPoints()
     -- Right: Bag slots
-
-    self.env.scriptLeftXP = {
-        math = math,
-        string = string,
-        UnitXP = UnitXP,
-        UnitXPMax = UnitXPMax,
-        GetXPExhaustion = GetXPExhaustion,
-        GetWatchedFactionInfo = GetWatchedFactionInfo,
-        HSL = HSL
-    }
 end
 
 function sjUI:Left_Enable()
@@ -472,18 +428,26 @@ function sjUI:Left_Enable()
     self:RegisterEvent("UPDATE_FACTION", sjUI.Left_UpdateXP)
     self:RegisterEvent("CHAT_MSG_COMBAT_FACTION_CHANGE", sjUI.Left_UpdateXP)
 
-    -- Initialize scripts
-    local func = loadstring(self.opt.scriptLeftXP)
-    if func then
-        setfenv(func, self.env.scriptLeftXP)
-        self.scriptLeftXP = func
-    end
-
     --self.Left_UpdateXP()
 end
 
 function sjUI.Left_UpdateXP()
-    sjUI_LeftXPLabel:SetText(sjUI.scriptLeftXP())
+    local numSegments = 40
+    local faction, reaction, min, max, cur = GetWatchedFactionInfo()
+    local s, bars, r1, g1, b1, r2, g2, b2
+    if faction and reaction then
+        bars = (cur-min)/(max-min)*numSegments
+        r1, g1, b1 = HSL((reaction-1)*30, 1, 0.5)
+        r2, g2, b2 = HSL((reaction-1)*30, 0.5, 0.15)
+        s = string.format("%3.1fk |cff%02x%02x%02x%s|r|cff%02x%02x%02x%s|r %3.1fk", (cur-min)/1000, 255*r1, 255*g1, 255*b1, string.rep("I", bars), 255*r2, 255*g2, 255*b2, string.rep("I", numSegments-bars), (max-min)/1000)
+    else
+        cur, max = UnitXP("player"), UnitXPMax("player")
+        bars = cur/max*numSegments
+        r1, g1, b1 = HSL(270, 1, 0.5)
+        r2, g2, b2 = HSL(270, 0.5, 0.15)
+        s = string.format("%3.1fk |cff%02x%02x%02x%s|r|cff%02x%02x%02x%s|r %3.1fk", cur/1000, 255*r1, 255*g1, 255*b1, string.rep("I", bars), 255*r2, 255*g2, 255*b2, string.rep("I", numSegments-bars), max/1000)
+    end
+    sjUI_LeftXPLabel:SetText(s)
 end
 
 -------------------------------------------------------------------------------
@@ -633,16 +597,6 @@ function sjUI:Micro_Enable()
             f:SetPoint("BOTTOMLEFT", sjUI_Right, "TOPLEFT", (i-5)*(77.5+2), 2)
         end
     end
-    --for i = 8, 1, -1 do
-    --f = sjUI.micro_buttons[i]
-    --f:SetParent(UIParent)
-    --f:ClearAllPoints()
-    --if i == 8 then
-    --f:SetPoint("BOTTOMRIGHT", -4, 22)
-    --else
-    --f:SetPoint("BOTTOM", sjUI.micro_buttons[i+1], "TOP", 0, 2)
-    --end
-    --end
 end
 
 -------------------------------------------------------------------------------
